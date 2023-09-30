@@ -128,7 +128,9 @@ fn display(filename: []const u8, writer: anytype, options: struct { color: bool,
         }
     }
 
-    try writer.print("File size: {} bytes ({d:.2} {s})\n", .{filesize} ++ normalizeSizeFmt(filesize));
+    if (filesize < 1024) {
+        try writer.print("File size: {} bytes\n", .{filesize});
+    } else try writer.print("File size: {} bytes ({d:.2} {s})\n", .{filesize} ++ normalizeSizeFmt(filesize));
 }
 
 pub fn main() !void {
