@@ -51,7 +51,7 @@ inline fn isPrintable(c: u8) bool {
     };
 }
 
-fn display(filename: []const u8, writer: anytype, options: struct { color: bool, uppercase: bool }) !void {
+fn display(filename: []const u8, writer: anytype, options: struct { color: bool, uppercase: bool, show_size: bool }) !void {
     const file = try std.fs.cwd().openFile(filename, .{});
     defer file.close();
 
@@ -128,9 +128,11 @@ fn display(filename: []const u8, writer: anytype, options: struct { color: bool,
         }
     }
 
-    if (filesize < 1024) {
-        try writer.print("File size: {} bytes\n", .{filesize});
-    } else try writer.print("File size: {} bytes ({d:.2} {s})\n", .{filesize} ++ normalizeSizeFmt(filesize));
+    if (options.show_size) {
+        if (filesize < 1024) {
+            try writer.print("File size: {} bytes\n", .{filesize});
+        } else try writer.print("File size: {} bytes ({d:.2} {s})\n", .{filesize} ++ normalizeSizeFmt(filesize));
+    }
 }
 
 pub fn main() !void {
@@ -139,6 +141,7 @@ pub fn main() !void {
         \\--color               Enable output coloring
         \\--no-color            Disable output coloring
         \\--uppercase           Print uppercase hexadecimal
+        \\--no-size             Do not show the file size at the end
         \\<file>                The file to open
     );
 
@@ -171,5 +174,6 @@ pub fn main() !void {
     try display(filename, std.io.getStdOut().writer(), .{
         .color = color_mode,
         .uppercase = clap_res.args.uppercase != 0,
+        .show_size = clap_res.args.@"no-size" == 0,
     });
 }
