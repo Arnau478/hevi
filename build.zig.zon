@@ -4,7 +4,7 @@
     .dependencies = .{
         .clap = .{
             .url = "https://github.com/Hejsil/zig-clap/archive/refs/heads/master.tar.gz",
-            .hash = "1220483a4a19b02f8e3d59d75706be0392a0326f4b3b30daa3055676f5a98ddb1f11",
+            .hash = "1220a07d7d30e031bf50a4ad4f92f4d8eb897ebb5e8c62d8af165c014d4f2ec27ed5",
         }
     },
     .paths = [_][]const u8{ "" },
