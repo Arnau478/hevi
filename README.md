@@ -1,5 +1,7 @@
 # HEVI - A hex viewer
 
+![ci status](https://github.com/Arnau478/hevi/actions/workflows/ci.yml/badge.svg)
+
 ![example image](assets/example.png)
 
 ## What is hevi?
