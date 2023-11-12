@@ -137,7 +137,7 @@ pub fn main() !void {
     const params = comptime clap.parseParamsComptime(
         \\-h, --help            Display this help and exit.
         \\--color               Enable output coloring
-        \\--no-color            Enable output coloring
+        \\--no-color            Disable output coloring
         \\--uppercase           Print uppercase hexadecimal
         \\<file>                The file to open
     );
