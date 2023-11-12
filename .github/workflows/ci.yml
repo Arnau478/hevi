@@ -11,7 +11,7 @@ jobs:
       - uses: goto-bus-stop/setup-zig@v2
       - run: zig build
   lint:
-    runs-os: ubuntu-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - uses: goto-bus-stop/setup-zig@v2
