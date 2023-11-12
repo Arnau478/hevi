@@ -28,7 +28,7 @@ const NormalizedSize = struct {
     unit: NormalizedSizeUnit,
 };
 
-fn normalizeSize(bytes: usize) NormalizedSize {
+fn normalizeSize(bytes: u64) NormalizedSize {
     var size = NormalizedSize{ .magnitude = @floatFromInt(bytes), .unit = .{ .order = 0 } };
 
     while (size.magnitude >= 1024) {
@@ -39,7 +39,7 @@ fn normalizeSize(bytes: usize) NormalizedSize {
     return size;
 }
 
-fn normalizeSizeFmt(bytes: usize) struct { f64, []const u8 } {
+fn normalizeSizeFmt(bytes: u64) struct { f64, []const u8 } {
     const res = normalizeSize(bytes);
     return .{ res.magnitude, res.unit.getName() };
 }
@@ -57,7 +57,7 @@ fn display(filename: []const u8, writer: anytype, options: struct { color: bool,
 
     const filesize = (try file.stat()).size;
 
-    const line_count = std.math.divCeil(usize, filesize, 16) catch unreachable;
+    const line_count: usize = @truncate(std.math.divCeil(u64, filesize, 16) catch unreachable);
 
     for (0..line_count) |line_idx| {
         const line_offset = line_idx * 16;
