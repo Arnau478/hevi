@@ -51,87 +51,92 @@ inline fn isPrintable(c: u8) bool {
     };
 }
 
-fn display(filename: []const u8, writer: anytype, options: struct { color: bool, uppercase: bool, show_size: bool }) !void {
-    const file = try std.fs.cwd().openFile(filename, .{});
-    defer file.close();
+const DisplayLineOptions = struct {
+    color: bool,
+    uppercase: bool,
+};
 
-    const filesize = (try file.stat()).size;
+fn displayLine(line: []const u8, writer: anytype, options: DisplayLineOptions) !void {
+    if (options.color) {
+        try writer.print("\x1b[2m|\x1b[0m ", .{});
+    } else try writer.print("| ", .{});
 
-    const line_count: usize = @truncate(std.math.divCeil(u64, filesize, 16) catch unreachable);
+    for (line, 0..) |byte, i| {
+        if (options.color) {
+            try writer.print("{s}", .{if (isPrintable(byte)) "\x1b[33m" else "\x1b[33m\x1b[2m"});
+        }
 
-    for (0..line_count) |line_idx| {
-        const line_offset = line_idx * 16;
         if (options.uppercase) {
-            try writer.print("{X:0>8}", .{line_offset});
-        } else {
-            try writer.print("{x:0>8}", .{line_offset});
-        }
+            try writer.print("{X:0>2}", .{byte});
+        } else try writer.print("{x:0>2}", .{byte});
+
+        if (options.color) try writer.print("\x1b[0m", .{});
+
+        if (i % 2 == 1) try writer.print(" ", .{});
+    }
+
+    if (line.len != 16) {
+        for (0..(16 - line.len)) |_| try writer.print("  ", .{});
+        for (0..std.math.divCeil(usize, 16 - line.len, 2) catch unreachable) |_| try writer.print(" ", .{});
+    }
+
+    if (options.color) {
+        try writer.print("\x1b[2m|\x1b[0m ", .{});
+    } else try writer.print("| ", .{});
+
+    for (line) |byte| {
+        const printable = isPrintable(byte);
 
         if (options.color) {
-            try writer.print(" \x1b[2m|\x1b[0m ", .{});
-        } else {
-            try writer.print(" | ", .{});
+            try writer.print("{s}", .{if (printable) "\x1b[33m" else "\x1b[2m"});
         }
 
-        var buf: [16]u8 = undefined;
-        const line_len = try file.pread(&buf, line_offset);
+        try writer.print("{c}", .{if (printable) byte else '.'});
 
-        for (buf, 0..) |b, i| {
-            if (i < line_len) {
-                if (options.color) {
-                    if (isPrintable(b)) {
-                        if (options.uppercase) {
-                            try writer.print("\x1b[33m{X:0>2}\x1b[0m", .{b});
-                        } else {
-                            try writer.print("\x1b[33m{x:0>2}\x1b[0m", .{b});
-                        }
-                    } else {
-                        if (options.uppercase) {
-                            try writer.print("\x1b[33m\x1b[2m{X:0>2}\x1b[0m", .{b});
-                        } else {
-                            try writer.print("\x1b[33m\x1b[2m{x:0>2}\x1b[0m", .{b});
-                        }
-                    }
-                } else {
-                    if (options.uppercase) {
-                        try writer.print("{X:0>2}", .{b});
-                    } else {
-                        try writer.print("{x:0>2}", .{b});
-                    }
-                }
-            } else {
-                try writer.print("  ", .{});
-            }
+        if (options.color) try writer.print("\x1b[0m", .{});
+    }
 
-            if (i % 2 == 1 and i != 15) try writer.print(" ", .{});
-        }
+    if (line.len != 16) {
+        for (0..(16 - line.len)) |_| try writer.print(" ", .{});
+    }
 
-        if (options.color) {
-            try writer.print(" \x1b[2m|\x1b[0m ", .{});
-        } else {
-            try writer.print(" | ", .{});
-        }
+    if (options.color) {
+        try writer.print(" \x1b[2m|\x1b[0m\n", .{});
+    } else try writer.print(" |\n", .{});
+}
 
-        for (buf, 0..) |b, i| {
-            if (i < line_len) {
-                const char_buf: []const u8 = if (options.color) "\x1b[33m" ++ [_]u8{b} ++ "\x1b[0m" else &[_]u8{b};
-                try writer.print("{s}", .{if (isPrintable(b)) char_buf else (if (options.color) "\x1b[2m.\x1b[0m" else ".")});
-            } else {
-                try writer.print(" ", .{});
-            }
-        }
+const DisplayOptions = struct {
+    color: bool,
+    uppercase: bool,
+    show_size: bool,
+};
 
-        if (options.color) {
-            try writer.print(" \x1b[2m|\x1b[0m\n", .{});
-        } else {
-            try writer.print(" |\n", .{});
-        }
+fn display(reader: anytype, writer: anytype, options: DisplayOptions) !void {
+    var count: usize = 0;
+
+    var buf: [16]u8 = undefined;
+
+    while (true) {
+        const line_len = try reader.readAll(&buf);
+        if (line_len == 0) break;
+        const line = buf[0..line_len];
+
+        if (options.uppercase) {
+            try writer.print("{X:0>8} ", .{count});
+        } else try writer.print("{x:0>8} ", .{count});
+
+        try displayLine(line, writer, .{
+            .color = options.color,
+            .uppercase = options.uppercase,
+        });
+
+        count += line_len;
     }
 
     if (options.show_size) {
-        if (filesize < 1024) {
-            try writer.print("File size: {} bytes\n", .{filesize});
-        } else try writer.print("File size: {} bytes ({d:.2} {s})\n", .{filesize} ++ normalizeSizeFmt(filesize));
+        if (count < 1024) {
+            try writer.print("File size: {} bytes\n", .{count});
+        } else try writer.print("File size: {} bytes ({d:.2} {s})\n", .{count} ++ normalizeSizeFmt(count));
     }
 }
 
@@ -164,6 +169,9 @@ pub fn main() !void {
 
     const filename = clap_res.positionals[0];
 
+    const file = try std.fs.cwd().openFile(filename, .{});
+    defer file.close();
+
     const color_mode_default = true;
 
     const color_mode = if (clap_res.args.color != 0 and clap_res.args.@"no-color" == 0) true else if (clap_res.args.@"no-color" != 0 and clap_res.args.color == 0) false else if (clap_res.args.color == 0 and clap_res.args.@"no-color" == 0) color_mode_default else {
@@ -171,7 +179,7 @@ pub fn main() !void {
         std.process.exit(1);
     };
 
-    try display(filename, std.io.getStdOut().writer(), .{
+    try display(file.reader(), std.io.getStdOut().writer(), .{
         .color = color_mode,
         .uppercase = clap_res.args.uppercase != 0,
         .show_size = clap_res.args.@"no-size" == 0,
