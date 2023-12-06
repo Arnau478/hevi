@@ -1,12 +1,7 @@
 .{
     .name = "hevi",
     .version = "0.1.0",
-    .dependencies = .{
-        .clap = .{
-            .url = "https://github.com/Hejsil/zig-clap/archive/refs/heads/master.tar.gz",
-            .hash = "122066d86920926a4a674adaaa10f158dc4961c2a47e588e605765455d74ca72c2ad",
-        }
-    },
+    .dependencies = .{},
     .paths = .{
         "",
     },
