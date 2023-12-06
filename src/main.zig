@@ -1,48 +1,9 @@
 const std = @import("std");
 const clap = @import("clap");
+const NormalizedSize = @import("NormalizedSize.zig");
 
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 const allocator = gpa.allocator();
-
-const NormalizedSizeUnit = struct {
-    order: usize,
-
-    fn getName(self: NormalizedSizeUnit) []const u8 {
-        return switch (self.order) {
-            0 => "B",
-            1 => "KiB",
-            2 => "MiB",
-            3 => "GiB",
-            4 => "TiB",
-            5 => "PiB",
-            6 => "EiB",
-            7 => "ZiB",
-            8 => "YiB",
-            else => ">>B",
-        };
-    }
-};
-
-const NormalizedSize = struct {
-    magnitude: f64,
-    unit: NormalizedSizeUnit,
-};
-
-fn normalizeSize(bytes: u64) NormalizedSize {
-    var size = NormalizedSize{ .magnitude = @floatFromInt(bytes), .unit = .{ .order = 0 } };
-
-    while (size.magnitude >= 1024) {
-        size.magnitude /= 1024;
-        size.unit.order += 1;
-    }
-
-    return size;
-}
-
-fn normalizeSizeFmt(bytes: u64) struct { f64, []const u8 } {
-    const res = normalizeSize(bytes);
-    return .{ res.magnitude, res.unit.getName() };
-}
 
 inline fn isPrintable(c: u8) bool {
     return switch (c) {
@@ -136,7 +97,7 @@ fn display(reader: anytype, writer: anytype, options: DisplayOptions) !void {
     if (options.show_size) {
         if (count < 1024) {
             try writer.print("File size: {} bytes\n", .{count});
-        } else try writer.print("File size: {} bytes ({d:.2} {s})\n", .{count} ++ normalizeSizeFmt(count));
+        } else try writer.print("File size: {} bytes ({})\n", .{ count, NormalizedSize.fromBytes(count) });
     }
 }
 
