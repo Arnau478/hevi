@@ -11,7 +11,7 @@ Hevi is a hex viewer, just like `xxd` or `hexdump`.
 Hevi is under development. But if you think it's missing any feature, please open an issue. I will address it as soon as possible.
 
 ## About
-It is written in [zig](https://github.com/ziglang/zig), and uses [clap](https://github.com/Hejsil/zig-clap) as a CLI parser.
+It is written in [zig](https://github.com/ziglang/zig), in an attempt to simplify hex viewers.
 
 ## Contribute
 Contributions are welcome! Even if you don't want to write code, you can help a lot creating new issues or testing this software.
