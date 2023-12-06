@@ -1,5 +1,5 @@
 const std = @import("std");
-const clap = @import("clap");
+const argparse = @import("argparse.zig");
 const NormalizedSize = @import("NormalizedSize.zig");
 
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -102,49 +102,19 @@ fn display(reader: anytype, writer: anytype, options: DisplayOptions) !void {
 }
 
 pub fn main() !void {
-    const params = comptime clap.parseParamsComptime(
-        \\-h, --help            Display this help and exit.
-        \\--color               Enable output coloring
-        \\--no-color            Disable output coloring
-        \\--uppercase           Print uppercase hexadecimal
-        \\--no-size             Do not show the file size at the end
-        \\<file>                The file to open
-    );
+    const args = try std.process.argsAlloc(allocator);
+    defer std.process.argsFree(allocator, args);
 
-    const clap_parsers = comptime .{
-        .file = clap.parsers.string,
-    };
-    var clap_diag = clap.Diagnostic{};
-    var clap_res = clap.parse(clap.Help, &params, clap_parsers, .{ .diagnostic = &clap_diag }) catch |e| {
-        clap_diag.report(std.io.getStdErr().writer(), e) catch {};
-        std.process.exit(1);
-    };
-    defer clap_res.deinit();
+    const parsed_args = argparse.parse(args[1..]);
 
-    if (clap_res.args.help != 0) return clap.help(std.io.getStdErr().writer(), clap.Help, &params, .{});
-
-    if (clap_res.positionals.len != 1) {
-        try std.io.getStdErr().writer().print("Expected one positional, found {}\n", .{clap_res.positionals.len});
-        std.process.exit(1);
-    }
-
-    const filename = clap_res.positionals[0];
-
-    const file = try std.fs.cwd().openFile(filename, .{});
+    const file = try std.fs.cwd().openFile(parsed_args.filename, .{});
     defer file.close();
 
     const stdout = std.io.getStdOut();
 
-    const color_mode_default = stdout.supportsAnsiEscapeCodes();
-
-    const color_mode = if (clap_res.args.color != 0 and clap_res.args.@"no-color" == 0) true else if (clap_res.args.@"no-color" != 0 and clap_res.args.color == 0) false else if (clap_res.args.color == 0 and clap_res.args.@"no-color" == 0) color_mode_default else {
-        try std.io.getStdErr().writer().print("--color and --no-color cannot be specified at the same time\n", .{});
-        std.process.exit(1);
-    };
-
     try display(file.reader(), stdout.writer(), .{
-        .color = color_mode,
-        .uppercase = clap_res.args.uppercase != 0,
-        .show_size = clap_res.args.@"no-size" == 0,
+        .color = parsed_args.color orelse stdout.supportsAnsiEscapeCodes(),
+        .uppercase = parsed_args.uppercase orelse false,
+        .show_size = parsed_args.show_size orelse true,
     });
 }
