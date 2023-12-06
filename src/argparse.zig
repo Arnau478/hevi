@@ -1,0 +1,125 @@
+const std = @import("std");
+
+const ParseResult = struct {
+    filename: []const u8,
+    color: ?bool,
+    uppercase: ?bool,
+    show_size: ?bool,
+};
+
+const Flag = union(enum) {
+    action: struct {
+        flag: []const u8,
+        action: enum {
+            help,
+        },
+    },
+    toggle: struct {
+        boolean: *?bool,
+        enable: []const u8,
+        disable: []const u8,
+    },
+};
+
+fn printError(comptime fmt: []const u8, args: anytype) noreturn {
+    std.debug.print("Error: " ++ fmt ++ "\nTip: use `--help` for help\n", args);
+    std.process.exit(1);
+}
+
+fn printHelp() noreturn {
+    std.debug.print(
+        \\hevi - hex viewer
+        \\
+        \\Usage:
+        \\  hevi <file> [flags]
+        \\
+        \\Flags:
+        \\  -h, --help                  Print this help message
+        \\  --color, --no-color         Enable or disable output coloring
+        \\  --lowercase, --uppercase    Switch between lowercase and uppercase hex
+        \\  --size, --no-size           Enable or disable showing the size at the end
+        \\
+        \\Made by Arnau478
+        \\
+    , .{});
+    std.process.exit(0);
+}
+
+pub fn parse(args: [][]const u8) ParseResult {
+    var filename: ?[]const u8 = null;
+    var color: ?bool = null;
+    var uppercase: ?bool = null;
+    var show_size: ?bool = null;
+
+    for (args) |arg| {
+        if (arg[0] == '-') {
+            if (arg.len <= 1) {
+                printError("expected flag", .{});
+            }
+            switch (arg[1]) {
+                'h' => {
+                    printHelp();
+                },
+                '-' => {
+                    const name = arg[2..];
+                    if (name.len == 0) printError("expected flag", .{});
+
+                    const flags: []const Flag = &.{
+                        .{ .action = .{ .flag = "help", .action = .help } },
+                        .{ .toggle = .{ .boolean = &color, .enable = "color", .disable = "no-color" } },
+                        .{ .toggle = .{ .boolean = &uppercase, .enable = "uppercase", .disable = "lowercase" } },
+                        .{ .toggle = .{ .boolean = &show_size, .enable = "size", .disable = "no-size" } },
+                    };
+
+                    const found = blk: {
+                        for (flags) |flag| {
+                            switch (flag) {
+                                .action => |action| {
+                                    if (std.mem.eql(u8, name, action.flag)) {
+                                        switch (action.action) {
+                                            .help => printHelp(),
+                                        }
+                                        break :blk true;
+                                    }
+                                },
+                                .toggle => |toggle| {
+                                    var set: ?bool = null;
+                                    if (std.mem.eql(u8, name, toggle.enable)) {
+                                        set = true;
+                                    } else if (std.mem.eql(u8, name, toggle.disable)) {
+                                        set = false;
+                                    }
+
+                                    if (set) |s| {
+                                        if (toggle.boolean.* != null) {
+                                            if (toggle.boolean.*.? != s) {
+                                                printError("`--{s}` and `--{s}` are mutually exclusive", .{ toggle.enable, toggle.disable });
+                                            } else printError("`--{s}` specified multiple times", .{if (s) toggle.enable else toggle.disable});
+                                        } else toggle.boolean.* = s;
+
+                                        break :blk true;
+                                    }
+                                },
+                            }
+                        }
+                        break :blk false;
+                    };
+
+                    if (!found) printError("invalid flag `{s}`", .{arg});
+                },
+                else => printError("invalid flag `{s}`", .{arg}),
+            }
+        } else {
+            if (filename) |_| {
+                printError("multiple files specified", .{});
+            } else filename = arg;
+        }
+    }
+
+    return .{
+        .filename = filename orelse printError("no file specified", .{}),
+        .color = color,
+        .uppercase = uppercase,
+        .show_size = show_size,
+    };
+}
