@@ -10,6 +10,17 @@ Hevi is a hex viewer, just like `xxd` or `hexdump`.
 ## But it's missing X...
 Hevi is under development. But if you think it's missing any feature, please open an issue. I will address it as soon as possible.
 
+## Usage
+The command should be used as `hevi <file> [flags]`. The flags are described [below](#flags).
+
+### Flags
+| Flag(s)                     | Description                                             |
+| --------------------------- | ------------------------------------------------------- |
+| `-h`/`--help`               | Show a help message                                     |
+| `--color`/`--no-color`      | Enable and disable colored output                       |
+| `--lowercase`/`--uppercase` | Toggle between lowercase and uppercase hex              |
+| `--size`/`--no-size`        | Enable and disable the line showing the size at the end |
+
 ## About
 It is written in [zig](https://github.com/ziglang/zig), in an attempt to simplify hex viewers.
 
