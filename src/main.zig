@@ -172,14 +172,16 @@ pub fn main() !void {
     const file = try std.fs.cwd().openFile(filename, .{});
     defer file.close();
 
-    const color_mode_default = true;
+    const stdout = std.io.getStdOut();
+
+    const color_mode_default = stdout.supportsAnsiEscapeCodes();
 
     const color_mode = if (clap_res.args.color != 0 and clap_res.args.@"no-color" == 0) true else if (clap_res.args.@"no-color" != 0 and clap_res.args.color == 0) false else if (clap_res.args.color == 0 and clap_res.args.@"no-color" == 0) color_mode_default else {
         try std.io.getStdErr().writer().print("--color and --no-color cannot be specified at the same time\n", .{});
         std.process.exit(1);
     };
 
-    try display(file.reader(), std.io.getStdOut().writer(), .{
+    try display(file.reader(), stdout.writer(), .{
         .color = color_mode,
         .uppercase = clap_res.args.uppercase != 0,
         .show_size = clap_res.args.@"no-size" == 0,
