@@ -20,6 +20,8 @@ The command should be used as `hevi <file> [flags]`. The flags are described [be
 | `--color`/`--no-color`      | Enable and disable colored output                       |
 | `--lowercase`/`--uppercase` | Toggle between lowercase and uppercase hex              |
 | `--size`/`--no-size`        | Enable and disable the line showing the size at the end |
+| `--offset`/`--no-offset`    | Enable and disable showing the offset                   |
+| `--acii`/`--no-ascii`       | Enable and disable ASCII interpretation                 |
 
 ## About
 It is written in [zig](https://github.com/ziglang/zig), in an attempt to simplify hex viewers.

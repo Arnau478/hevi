@@ -15,6 +15,7 @@ inline fn isPrintable(c: u8) bool {
 const DisplayLineOptions = struct {
     color: bool,
     uppercase: bool,
+    show_ascii: bool,
 };
 
 fn displayLine(line: []const u8, writer: anytype, options: DisplayLineOptions) !void {
@@ -42,34 +43,41 @@ fn displayLine(line: []const u8, writer: anytype, options: DisplayLineOptions) !
     }
 
     if (options.color) {
-        try writer.print("\x1b[2m|\x1b[0m ", .{});
-    } else try writer.print("| ", .{});
+        try writer.print("\x1b[2m|\x1b[0m", .{});
+    } else try writer.print("|", .{});
 
-    for (line) |byte| {
-        const printable = isPrintable(byte);
+    if (options.show_ascii) {
+        try writer.print(" ", .{});
+        for (line) |byte| {
+            const printable = isPrintable(byte);
 
-        if (options.color) {
-            try writer.print("{s}", .{if (printable) "\x1b[33m" else "\x1b[2m"});
+            if (options.color) {
+                try writer.print("{s}", .{if (printable) "\x1b[33m" else "\x1b[2m"});
+            }
+
+            try writer.print("{c}", .{if (printable) byte else '.'});
+
+            if (options.color) try writer.print("\x1b[0m", .{});
         }
 
-        try writer.print("{c}", .{if (printable) byte else '.'});
+        if (line.len != 16) {
+            for (0..(16 - line.len)) |_| try writer.print(" ", .{});
+        }
 
-        if (options.color) try writer.print("\x1b[0m", .{});
+        if (options.color) {
+            try writer.print(" \x1b[2m|\x1b[0m", .{});
+        } else try writer.print(" |", .{});
     }
 
-    if (line.len != 16) {
-        for (0..(16 - line.len)) |_| try writer.print(" ", .{});
-    }
-
-    if (options.color) {
-        try writer.print(" \x1b[2m|\x1b[0m\n", .{});
-    } else try writer.print(" |\n", .{});
+    try writer.print("\n", .{});
 }
 
 const DisplayOptions = struct {
     color: bool,
     uppercase: bool,
     show_size: bool,
+    show_offset: bool,
+    show_ascii: bool,
 };
 
 fn display(reader: anytype, writer: anytype, options: DisplayOptions) !void {
@@ -82,13 +90,16 @@ fn display(reader: anytype, writer: anytype, options: DisplayOptions) !void {
         if (line_len == 0) break;
         const line = buf[0..line_len];
 
-        if (options.uppercase) {
-            try writer.print("{X:0>8} ", .{count});
-        } else try writer.print("{x:0>8} ", .{count});
+        if (options.show_offset) {
+            if (options.uppercase) {
+                try writer.print("{X:0>8} ", .{count});
+            } else try writer.print("{x:0>8} ", .{count});
+        }
 
         try displayLine(line, writer, .{
             .color = options.color,
             .uppercase = options.uppercase,
+            .show_ascii = options.show_ascii,
         });
 
         count += line_len;
@@ -116,5 +127,7 @@ pub fn main() !void {
         .color = parsed_args.color orelse stdout.supportsAnsiEscapeCodes(),
         .uppercase = parsed_args.uppercase orelse false,
         .show_size = parsed_args.show_size orelse true,
+        .show_offset = parsed_args.show_offset orelse true,
+        .show_ascii = parsed_args.show_ascii orelse true,
     });
 }
