@@ -23,6 +23,9 @@ The command should be used as `hevi <file> [flags]`. The flags are described [be
 | `--offset`/`--no-offset`    | Enable and disable showing the offset                   |
 | `--acii`/`--no-ascii`       | Enable and disable ASCII interpretation                 |
 
+### Environment variables
+The `NO_COLOR` variable is supported, and disables color (see <https://no-color.org/>) printing. Note that it can be overwritten by an explicit `--color`.
+
 ## About
 It is written in [zig](https://github.com/ziglang/zig), in an attempt to simplify hex viewers.
 
