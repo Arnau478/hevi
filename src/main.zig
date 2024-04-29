@@ -116,6 +116,9 @@ pub fn main() !void {
     const args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
 
+    var envs = try std.process.getEnvMap(allocator);
+    defer envs.deinit();
+
     const parsed_args = argparse.parse(args[1..]);
 
     const file = try std.fs.cwd().openFile(parsed_args.filename, .{});
@@ -123,8 +126,16 @@ pub fn main() !void {
 
     const stdout = std.io.getStdOut();
 
+    var color = stdout.supportsAnsiEscapeCodes();
+    if (parsed_args.color) |val| {
+        color = val;
+    } else if (envs.get("NO_COLOR")) |val| {
+        if (!std.mem.eql(u8, val, ""))
+            color = false;
+    }
+
     try display(file.reader(), stdout.writer(), .{
-        .color = parsed_args.color orelse stdout.supportsAnsiEscapeCodes(),
+        .color = color,
         .uppercase = parsed_args.uppercase orelse false,
         .show_size = parsed_args.show_size orelse true,
         .show_offset = parsed_args.show_offset orelse true,
