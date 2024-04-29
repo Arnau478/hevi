@@ -12,6 +12,19 @@ inline fn isPrintable(c: u8) bool {
     };
 }
 
+inline fn useColor(stdout: std.fs.File, color_arg: ?bool) !bool {
+    var envs = try std.process.getEnvMap(allocator);
+    defer envs.deinit();
+
+    if (color_arg) |val| {
+        return val;
+    } else if (envs.get("NO_COLOR")) |val| {
+        if (!std.mem.eql(u8, val, ""))
+            return false;
+    }
+    return stdout.supportsAnsiEscapeCodes();
+}
+
 const DisplayLineOptions = struct {
     color: bool,
     uppercase: bool,
@@ -124,7 +137,7 @@ pub fn main() !void {
     const stdout = std.io.getStdOut();
 
     try display(file.reader(), stdout.writer(), .{
-        .color = parsed_args.color orelse stdout.supportsAnsiEscapeCodes(),
+        .color = try useColor(stdout, parsed_args.color),
         .uppercase = parsed_args.uppercase orelse false,
         .show_size = parsed_args.show_size orelse true,
         .show_offset = parsed_args.show_offset orelse true,
