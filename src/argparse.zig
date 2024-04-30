@@ -1,3 +1,4 @@
+const build_options = @import("build_options");
 const std = @import("std");
 
 const ParseResult = struct {
@@ -14,6 +15,7 @@ const Flag = union(enum) {
         flag: []const u8,
         action: enum {
             help,
+            version,
         },
     },
     toggle: struct {
@@ -37,6 +39,7 @@ fn printHelp() noreturn {
         \\
         \\Flags:
         \\  -h, --help                  Print this help message
+        \\  -v, --version               Print version information
         \\  --color, --no-color         Enable or disable output coloring
         \\  --lowercase, --uppercase    Switch between lowercase and uppercase hex
         \\  --size, --no-size           Enable or disable showing the size at the end
@@ -46,6 +49,14 @@ fn printHelp() noreturn {
         \\Made by Arnau478
         \\
     , .{});
+    std.process.exit(0);
+}
+
+fn printVersion() noreturn {
+    std.debug.print(
+        \\hevi {s}
+        \\
+    , .{build_options.version});
     std.process.exit(0);
 }
 
@@ -66,12 +77,16 @@ pub fn parse(args: [][]const u8) ParseResult {
                 'h' => {
                     printHelp();
                 },
+                'v' => {
+                    printVersion();
+                },
                 '-' => {
                     const name = arg[2..];
                     if (name.len == 0) printError("expected flag", .{});
 
                     const flags: []const Flag = &.{
                         .{ .action = .{ .flag = "help", .action = .help } },
+                        .{ .action = .{ .flag = "version", .action = .version } },
                         .{ .toggle = .{ .boolean = &color, .enable = "color", .disable = "no-color" } },
                         .{ .toggle = .{ .boolean = &uppercase, .enable = "uppercase", .disable = "lowercase" } },
                         .{ .toggle = .{ .boolean = &show_size, .enable = "size", .disable = "no-size" } },
@@ -86,6 +101,7 @@ pub fn parse(args: [][]const u8) ParseResult {
                                     if (std.mem.eql(u8, name, action.flag)) {
                                         switch (action.action) {
                                             .help => printHelp(),
+                                            .version => printVersion(),
                                         }
                                         break :blk true;
                                     }
