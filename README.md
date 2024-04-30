@@ -17,6 +17,7 @@ The command should be used as `hevi <file> [flags]`. The flags are described [be
 | Flag(s)                     | Description                                             |
 | --------------------------- | ------------------------------------------------------- |
 | `-h`/`--help`               | Show a help message                                     |
+| `-v`/`--version`            | Show version information                                |
 | `--color`/`--no-color`      | Enable and disable colored output                       |
 | `--lowercase`/`--uppercase` | Toggle between lowercase and uppercase hex              |
 | `--size`/`--no-size`        | Enable and disable the line showing the size at the end |
