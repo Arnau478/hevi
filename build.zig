@@ -1,8 +1,27 @@
 const std = @import("std");
+const Ast = std.zig.Ast;
 
-const VERSION = "1.0.0";
+const SemanticVersion = std.SemanticVersion;
 
-fn getVersion(b: *std.Build) []const u8 {
+fn getVersion(b: *std.Build) SemanticVersion {
+    var ast = Ast.parse(b.allocator, @embedFile("build.zig.zon"), .zon) catch @panic("OOM");
+    defer ast.deinit(b.allocator);
+
+    var buf: [2]Ast.Node.Index = undefined;
+    const build_zon = ast.fullStructInit(&buf, ast.nodes.items(.data)[0].lhs) orelse @panic("Cannot parse build.zig.zon");
+
+    const version: SemanticVersion = r: {
+        for (build_zon.ast.fields) |field| {
+            const field_name = ast.tokenSlice(ast.firstToken(field) - 2);
+
+            if (std.mem.eql(u8, field_name, "version")) {
+                const version_string = std.mem.trim(u8, ast.tokenSlice(ast.firstToken(field)), "\"");
+                break :r SemanticVersion.parse(version_string) catch @panic("Version parsing failed");
+            }
+        }
+        @panic("Unable to find 'version' in build.zig.zon");
+    };
+
     var code: u8 = undefined;
     const git_version_cmd = std.mem.trim(u8, b.runAllowFail(&[_][]const u8{
         "git",
@@ -10,11 +29,11 @@ fn getVersion(b: *std.Build) []const u8 {
         "--tags",
         "--abbrev=10",
     }, &code, .Ignore) catch {
-        return VERSION;
+        return version;
     }, "\n\r");
 
     switch (std.mem.count(u8, git_version_cmd, "-")) {
-        0 => return git_version_cmd, // Here VERSION == git_version_cmd
+        0 => return version, // Here version == git_version_cmd
         2 => {
             var splitted = std.mem.splitScalar(u8, git_version_cmd, '-');
             _ = splitted.first(); // Git tag
@@ -22,9 +41,15 @@ fn getVersion(b: *std.Build) []const u8 {
             const commit_id = splitted.next() orelse @panic("Wrong `git describe` output!");
 
             // The commit_id always starts with 'g' (for indicate that git was used), so we can skip it
-            return b.fmt("{s}-dev.{s}+{s}", .{ VERSION, commit_num, commit_id[1..] });
+            return SemanticVersion{
+                .major = version.major,
+                .minor = version.minor,
+                .patch = version.patch,
+                .pre = b.fmt("dev.{s}", .{commit_num}),
+                .build = commit_id[1..],
+            };
         },
-        else => return VERSION,
+        else => return version,
     }
 }
 
@@ -41,7 +66,7 @@ pub fn build(b: *std.Build) void {
     });
 
     var build_options = b.addOptions();
-    build_options.addOption([]const u8, "version", getVersion(b));
+    build_options.addOption(SemanticVersion, "version", getVersion(b));
     exe.root_module.addOptions("build_options", build_options);
 
     b.installArtifact(exe);

@@ -53,10 +53,28 @@ fn printHelp() noreturn {
 }
 
 fn printVersion() noreturn {
-    std.debug.print(
-        \\hevi {s}
-        \\
-    , .{build_options.version});
+    const version = build_options.version;
+
+    if (version.pre != null) {
+        // Development version
+        std.debug.print(
+            \\hevi {d}.{d}.{d}-{s}+{s}
+            \\
+        , .{
+            version.major,
+            version.minor,
+            version.patch,
+            version.pre.?,
+            version.build.?,
+        });
+    } else {
+        // Tagged version
+        std.debug.print(
+            \\hevi {d}.{d}.{d}
+            \\
+        , .{ version.major, version.minor, version.patch });
+    }
+
     std.process.exit(0);
 }
 
