@@ -55,7 +55,7 @@ fn printHelp() noreturn {
 fn printVersion() noreturn {
     const version = build_options.version;
 
-    if (version.pre != null) {
+    if (version.build != null) {
         // Development version
         std.debug.print(
             \\hevi {d}.{d}.{d}-{s}+{s}
@@ -66,6 +66,17 @@ fn printVersion() noreturn {
             version.patch,
             version.pre.?,
             version.build.?,
+        });
+    } else if (version.pre != null) {
+        // Development version because git information is not available
+        std.debug.print(
+            \\hevi {d}.{d}.{d}-{s}
+            \\
+        , .{
+            version.major,
+            version.minor,
+            version.patch,
+            version.pre.?,
         });
     } else {
         // Tagged version

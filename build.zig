@@ -10,7 +10,7 @@ fn getVersion(b: *std.Build) SemanticVersion {
     var buf: [2]Ast.Node.Index = undefined;
     const build_zon = ast.fullStructInit(&buf, ast.nodes.items(.data)[0].lhs) orelse @panic("Cannot parse build.zig.zon");
 
-    const version: SemanticVersion = r: {
+    var version: SemanticVersion = r: {
         for (build_zon.ast.fields) |field| {
             const field_name = ast.tokenSlice(ast.firstToken(field) - 2);
 
@@ -29,6 +29,7 @@ fn getVersion(b: *std.Build) SemanticVersion {
         "--tags",
         "--abbrev=10",
     }, &code, .Ignore) catch {
+        version.pre = "dev";
         return version;
     }, "\n\r");
 
@@ -49,7 +50,10 @@ fn getVersion(b: *std.Build) SemanticVersion {
                 .build = commit_id[1..],
             };
         },
-        else => return version,
+        else => {
+            version.pre = "dev";
+            return version;
+        },
     }
 }
 
