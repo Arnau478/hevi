@@ -1,7 +1,7 @@
 const build_options = @import("build_options");
 const std = @import("std");
 
-const ParseResult = struct {
+pub const ParseResult = struct {
     filename: []const u8,
     color: ?bool,
     uppercase: ?bool,

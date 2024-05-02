@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const argparse = @import("argparse.zig");
 const NormalizedSize = @import("NormalizedSize.zig");
 
@@ -10,19 +11,6 @@ inline fn isPrintable(c: u8) bool {
         0x20...0x7E => true,
         else => false,
     };
-}
-
-inline fn useColor(stdout: std.fs.File, color_arg: ?bool) !bool {
-    var envs = try std.process.getEnvMap(allocator);
-    defer envs.deinit();
-
-    if (color_arg) |val| {
-        return val;
-    } else if (envs.get("NO_COLOR")) |val| {
-        if (!std.mem.eql(u8, val, ""))
-            return false;
-    }
-    return stdout.supportsAnsiEscapeCodes();
 }
 
 const DisplayLineOptions = struct {
@@ -125,6 +113,89 @@ fn display(reader: anytype, writer: anytype, options: DisplayOptions) !void {
     }
 }
 
+fn openConfigFile() ?std.fs.File {
+    const path: ?[]const u8 = switch (builtin.os.tag) {
+        .linux => if (std.posix.getenv("XDG_CONFIG_HOME")) |xdg_config_home|
+            std.fs.path.join(allocator, &.{ xdg_config_home, "hevi/config.zon" }) catch null
+        else if (std.posix.getenv("HOME")) |home|
+            std.fs.path.join(allocator, &.{ home, ".config/hevi/config.zon" }) catch null
+        else
+            null,
+        else => null,
+    };
+
+    return std.fs.openFileAbsolute(path orelse return null, .{}) catch null;
+}
+
+fn getOptions(args: argparse.ParseResult, stdout: std.fs.File) !DisplayOptions {
+    // Default values
+    var options = DisplayOptions{
+        .color = stdout.supportsAnsiEscapeCodes(),
+        .uppercase = false,
+        .show_size = true,
+        .show_offset = true,
+        .show_ascii = true,
+    };
+
+    // Config file
+    if (openConfigFile()) |file| {
+        defer file.close();
+
+        const stderr = std.io.getStdErr();
+        defer stderr.close();
+
+        const source = try file.readToEndAllocOptions(allocator, std.math.maxInt(usize), null, 1, 0);
+        defer allocator.free(source);
+
+        var ast = try std.zig.Ast.parse(allocator, source, .zon);
+        defer ast.deinit(allocator);
+
+        var buf: [2]std.zig.Ast.Node.Index = undefined;
+        const root = ast.fullStructInit(&buf, ast.nodes.items(.data)[0].lhs) orelse {
+            try stderr.writer().print("Error: Config file does not contain a struct literal\n", .{});
+            return error.InvalidConfig;
+        };
+
+        for (root.ast.fields) |field| {
+            const name = ast.tokenSlice(ast.firstToken(field) - 2);
+            const slice = ast.tokenSlice(ast.firstToken(field));
+            const value = if (ast.tokens.get(ast.firstToken(field)).tag == .identifier and std.mem.eql(u8, slice, "true"))
+                true
+            else if (ast.tokens.get(ast.firstToken(field)).tag == .identifier and std.mem.eql(u8, slice, "false"))
+                false
+            else {
+                try stderr.writer().print("Error: Expected a bool for field {s} in config file\n", .{name});
+                return error.InvalidConfig;
+            };
+            const field_ptr = blk: {
+                inline for (std.meta.fields(DisplayOptions)) |opt_field| {
+                    if (std.mem.eql(u8, name, opt_field.name)) break :blk &@field(options, opt_field.name);
+                }
+                try stderr.writer().print("Error: Invalid field in config file: {s}\n", .{name});
+                return error.InvalidConfig;
+            };
+            field_ptr.* = value;
+        }
+    }
+
+    // Environment variables
+    var envs = try std.process.getEnvMap(allocator);
+    defer envs.deinit();
+
+    if (envs.get("NO_COLOR")) |s| {
+        if (!std.mem.eql(u8, s, "")) options.color = false;
+    }
+
+    // Flags
+    if (args.color) |color| options.color = color;
+    if (args.uppercase) |uppercase| options.uppercase = uppercase;
+    if (args.show_size) |show_size| options.show_size = show_size;
+    if (args.show_offset) |show_offset| options.show_offset = show_offset;
+    if (args.show_ascii) |show_ascii| options.show_ascii = show_ascii;
+
+    return options;
+}
+
 pub fn main() !void {
     const args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
@@ -136,11 +207,5 @@ pub fn main() !void {
 
     const stdout = std.io.getStdOut();
 
-    try display(file.reader(), stdout.writer(), .{
-        .color = try useColor(stdout, parsed_args.color),
-        .uppercase = parsed_args.uppercase orelse false,
-        .show_size = parsed_args.show_size orelse true,
-        .show_offset = parsed_args.show_offset orelse true,
-        .show_ascii = parsed_args.show_ascii orelse true,
-    });
+    try display(file.reader(), stdout.writer(), try getOptions(parsed_args, stdout));
 }

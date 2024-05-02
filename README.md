@@ -27,6 +27,18 @@ The command should be used as `hevi <file> [flags]`. The flags are described [be
 ### Environment variables
 The `NO_COLOR` variable is supported, and disables color (see <https://no-color.org/>) printing. Note that it can be overwritten by an explicit `--color`.
 
+### Config file
+You can create a file named `~/.config/hevi/config.zon`, and specify the default values for the flags. It follows the `.zon` syntax. Example:
+```zig
+.{
+    .color = true,
+    .uppercase = true,
+    .show_size = false,
+    .show_offset = true,
+    .show_ascii = false,
+}
+```
+
 ## About
 It is written in [zig](https://github.com/ziglang/zig), in an attempt to simplify hex viewers.
 
