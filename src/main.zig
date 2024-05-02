@@ -115,7 +115,7 @@ fn display(reader: anytype, writer: anytype, options: DisplayOptions) !void {
 
 fn openConfigFile(env_map: std.process.EnvMap) ?std.fs.File {
     const path: ?[]const u8 = switch (builtin.os.tag) {
-        .linux, .macos, .freebsd, .netbsd => if (env_map.get("XDG_CONFIG_HOME")) |xdg_config_home|
+        .linux, .macos, .freebsd, .openbsd, .netbsd => if (env_map.get("XDG_CONFIG_HOME")) |xdg_config_home|
             std.fs.path.join(allocator, &.{ xdg_config_home, "hevi/config.zon" }) catch null
         else if (env_map.get("HOME")) |home|
             std.fs.path.join(allocator, &.{ home, ".config/hevi/config.zon" }) catch null
