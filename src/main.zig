@@ -79,10 +79,39 @@ fn display(reader: anytype, writer: anytype, options: DisplayOptions) !void {
 
     var buf: [16]u8 = undefined;
 
+    // Variables for `--skip-lines`
+    var previous_buf: [16]u8 = undefined;
+    var previous_line_len: ?usize = null;
+    var lines_skipped: usize = 0;
+
     while (true) {
         const line_len = try reader.readAll(&buf);
-        if (line_len == 0) break;
+
+        if (line_len == 0) {
+            if (options.skip_lines) {
+                if (lines_skipped != 0)
+                    try writer.print("... {d} lines skipped ...\n", .{lines_skipped});
+            }
+            break;
+        }
+
         const line = buf[0..line_len];
+
+        if (options.skip_lines) {
+            if (previous_line_len) |p_line_len| {
+                if (std.mem.eql(u8, line, previous_buf[0..p_line_len])) {
+                    lines_skipped += 1;
+                    count += line_len;
+                    continue;
+                } else if (lines_skipped != 0) {
+                    try writer.print("... {d} lines skipped ...\n", .{lines_skipped});
+                    lines_skipped = 0;
+                }
+            }
+
+            previous_buf = buf;
+            previous_line_len = line_len;
+        }
 
         if (options.show_offset) {
             if (options.uppercase) {

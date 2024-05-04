@@ -10,6 +10,7 @@ pub const DisplayOptions = struct {
     show_size: bool,
     show_offset: bool,
     show_ascii: bool,
+    skip_lines: bool,
 };
 
 fn openConfigFile(env_map: std.process.EnvMap) ?std.fs.File {
@@ -41,6 +42,7 @@ pub fn getOptions(args: argparse.ParseResult, stdout: std.fs.File) !DisplayOptio
         .show_size = true,
         .show_offset = true,
         .show_ascii = true,
+        .skip_lines = true,
     };
 
     // Config file
@@ -95,6 +97,7 @@ pub fn getOptions(args: argparse.ParseResult, stdout: std.fs.File) !DisplayOptio
     if (args.show_size) |show_size| options.show_size = show_size;
     if (args.show_offset) |show_offset| options.show_offset = show_offset;
     if (args.show_ascii) |show_ascii| options.show_ascii = show_ascii;
+    if (args.skip_lines) |skip_lines| options.skip_lines = skip_lines;
 
     return options;
 }

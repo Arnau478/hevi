@@ -8,6 +8,7 @@ pub const ParseResult = struct {
     show_size: ?bool,
     show_offset: ?bool,
     show_ascii: ?bool,
+    skip_lines: ?bool,
 };
 
 const Flag = union(enum) {
@@ -38,13 +39,14 @@ fn printHelp() noreturn {
         \\  hevi <file> [flags]
         \\
         \\Flags:
-        \\  -h, --help                  Print this help message
-        \\  -v, --version               Print version information
-        \\  --color, --no-color         Enable or disable output coloring
-        \\  --lowercase, --uppercase    Switch between lowercase and uppercase hex
-        \\  --size, --no-size           Enable or disable showing the size at the end
-        \\  --offset, --no-offset       Enable or disable the offset at the left
-        \\  --ascii, --no-ascii         Enable or disable the ASCII output
+        \\  -h, --help                      Print this help message
+        \\  -v, --version                   Print version information
+        \\  --color, --no-color             Enable or disable output coloring
+        \\  --lowercase, --uppercase        Switch between lowercase and uppercase hex
+        \\  --size, --no-size               Enable or disable showing the size at the end
+        \\  --offset, --no-offset           Enable or disable the offset at the left
+        \\  --ascii, --no-ascii             Enable or disable the ASCII output
+        \\  --skip-lines, --no-skip-lines   Enable or disable skipping of identical lines
         \\
         \\Made by Arnau478
         \\
@@ -96,6 +98,7 @@ pub fn parse(args: [][]const u8) ParseResult {
     var show_size: ?bool = null;
     var show_offset: ?bool = null;
     var show_ascii: ?bool = null;
+    var skip_lines: ?bool = null;
 
     for (args) |arg| {
         if (arg[0] == '-') {
@@ -121,6 +124,7 @@ pub fn parse(args: [][]const u8) ParseResult {
                         .{ .toggle = .{ .boolean = &show_size, .enable = "size", .disable = "no-size" } },
                         .{ .toggle = .{ .boolean = &show_offset, .enable = "offset", .disable = "no-offset" } },
                         .{ .toggle = .{ .boolean = &show_ascii, .enable = "ascii", .disable = "no-ascii" } },
+                        .{ .toggle = .{ .boolean = &skip_lines, .enable = "skip-lines", .disable = "no-skip-lines" } },
                     };
 
                     const found = blk: {
@@ -176,5 +180,6 @@ pub fn parse(args: [][]const u8) ParseResult {
         .show_size = show_size,
         .show_offset = show_offset,
         .show_ascii = show_ascii,
+        .skip_lines = skip_lines,
     };
 }
