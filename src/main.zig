@@ -74,27 +74,63 @@ fn displayLine(line: []const u8, writer: anytype, options: DisplayLineOptions) !
     try writer.print("\n", .{});
 }
 
+fn printBuffer(line: []const u8, count: usize, writer: anytype, options: DisplayOptions) !void {
+    if (options.show_offset) {
+        if (options.uppercase) {
+            try writer.print("{X:0>8} ", .{count});
+        } else try writer.print("{x:0>8} ", .{count});
+    }
+
+    try displayLine(line, writer, .{
+        .color = options.color,
+        .uppercase = options.uppercase,
+        .show_ascii = options.show_ascii,
+    });
+}
+
 fn display(reader: anytype, writer: anytype, options: DisplayOptions) !void {
     var count: usize = 0;
 
     var buf: [16]u8 = undefined;
 
+    // Variables for `--skip-lines`
+    var previous_buf: [16]u8 = undefined;
+    var previous_line_len: ?usize = null;
+    var lines_skipped: usize = 0;
+
     while (true) {
         const line_len = try reader.readAll(&buf);
-        if (line_len == 0) break;
-        const line = buf[0..line_len];
 
-        if (options.show_offset) {
-            if (options.uppercase) {
-                try writer.print("{X:0>8} ", .{count});
-            } else try writer.print("{x:0>8} ", .{count});
+        if (line_len == 0) {
+            // If `options.skip_lines`
+            if (lines_skipped != 0) {
+                try writer.print("... {d} lines skipped ...\n", .{lines_skipped - 1});
+                try printBuffer(previous_buf[0..previous_line_len.?], count - previous_line_len.?, writer, options);
+            }
+            break;
         }
 
-        try displayLine(line, writer, .{
-            .color = options.color,
-            .uppercase = options.uppercase,
-            .show_ascii = options.show_ascii,
-        });
+        const line = buf[0..line_len];
+
+        if (options.skip_lines) {
+            if (previous_line_len) |p_line_len| {
+                if (std.mem.eql(u8, line, previous_buf[0..p_line_len])) {
+                    lines_skipped += 1;
+                    count += line_len;
+                    continue;
+                } else if (lines_skipped != 0) {
+                    try writer.print("... {d} lines skipped ...\n", .{lines_skipped - 1});
+                    try printBuffer(previous_buf[0..p_line_len], count - p_line_len, writer, options);
+
+                    lines_skipped = 0;
+                }
+            }
+
+            previous_buf = buf;
+            previous_line_len = line_len;
+        }
+
+        try printBuffer(line, count, writer, options);
 
         count += line_len;
     }

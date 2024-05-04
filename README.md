@@ -14,15 +14,16 @@ Hevi is under development. But if you think it's missing any feature, please ope
 The command should be used as `hevi <file> [flags]`. The flags are described [below](#flags).
 
 ### Flags
-| Flag(s)                     | Description                                             |
-| --------------------------- | ------------------------------------------------------- |
-| `-h`/`--help`               | Show a help message                                     |
-| `-v`/`--version`            | Show version information                                |
-| `--color`/`--no-color`      | Enable and disable colored output                       |
-| `--lowercase`/`--uppercase` | Toggle between lowercase and uppercase hex              |
-| `--size`/`--no-size`        | Enable and disable the line showing the size at the end |
-| `--offset`/`--no-offset`    | Enable and disable showing the offset                   |
-| `--acii`/`--no-ascii`       | Enable and disable ASCII interpretation                 |
+| Flag(s)                          | Description                                             |
+| -------------------------------- | ------------------------------------------------------- |
+| `-h`/`--help`                    | Show a help message                                     |
+| `-v`/`--version`                 | Show version information                                |
+| `--color`/`--no-color`           | Enable and disable colored output                       |
+| `--lowercase`/`--uppercase`      | Toggle between lowercase and uppercase hex              |
+| `--size`/`--no-size`             | Enable and disable the line showing the size at the end |
+| `--offset`/`--no-offset`         | Enable and disable showing the offset                   |
+| `--acii`/`--no-ascii`            | Enable and disable ASCII interpretation                 |
+| `--skip-lines`/`--no-skip-lines` | Enable and disable skipping of identical lines          |
 
 ### Environment variables
 The `NO_COLOR` variable is supported, and disables color (see <https://no-color.org/>) printing. Note that it can be overwritten by an explicit `--color`.
@@ -36,6 +37,7 @@ You can create a config file and specify the default values for the flags. It fo
     .show_size = false,
     .show_offset = true,
     .show_ascii = false,
+    .skip_lines = true,
 }
 ```
 
