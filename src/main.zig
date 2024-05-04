@@ -74,6 +74,20 @@ fn displayLine(line: []const u8, writer: anytype, options: DisplayLineOptions) !
     try writer.print("\n", .{});
 }
 
+fn printBuffer(line: []const u8, count: usize, writer: anytype, options: DisplayOptions) !void {
+    if (options.show_offset) {
+        if (options.uppercase) {
+            try writer.print("{X:0>8} ", .{count});
+        } else try writer.print("{x:0>8} ", .{count});
+    }
+
+    try displayLine(line, writer, .{
+        .color = options.color,
+        .uppercase = options.uppercase,
+        .show_ascii = options.show_ascii,
+    });
+}
+
 fn display(reader: anytype, writer: anytype, options: DisplayOptions) !void {
     var count: usize = 0;
 
@@ -88,9 +102,10 @@ fn display(reader: anytype, writer: anytype, options: DisplayOptions) !void {
         const line_len = try reader.readAll(&buf);
 
         if (line_len == 0) {
-            if (options.skip_lines) {
-                if (lines_skipped != 0)
-                    try writer.print("... {d} lines skipped ...\n", .{lines_skipped});
+            // If `options.skip_lines`
+            if (lines_skipped != 0) {
+                try writer.print("... {d} lines skipped ...\n", .{lines_skipped - 1});
+                try printBuffer(previous_buf[0..previous_line_len.?], count - previous_line_len.?, writer, options);
             }
             break;
         }
@@ -104,7 +119,9 @@ fn display(reader: anytype, writer: anytype, options: DisplayOptions) !void {
                     count += line_len;
                     continue;
                 } else if (lines_skipped != 0) {
-                    try writer.print("... {d} lines skipped ...\n", .{lines_skipped});
+                    try writer.print("... {d} lines skipped ...\n", .{lines_skipped - 1});
+                    try printBuffer(previous_buf[0..p_line_len], count - p_line_len, writer, options);
+
                     lines_skipped = 0;
                 }
             }
@@ -113,17 +130,7 @@ fn display(reader: anytype, writer: anytype, options: DisplayOptions) !void {
             previous_line_len = line_len;
         }
 
-        if (options.show_offset) {
-            if (options.uppercase) {
-                try writer.print("{X:0>8} ", .{count});
-            } else try writer.print("{x:0>8} ", .{count});
-        }
-
-        try displayLine(line, writer, .{
-            .color = options.color,
-            .uppercase = options.uppercase,
-            .show_ascii = options.show_ascii,
-        });
+        try printBuffer(line, count, writer, options);
 
         count += line_len;
     }
