@@ -3,6 +3,17 @@ const Ast = std.zig.Ast;
 
 const SemanticVersion = std.SemanticVersion;
 
+const release_targets: []const std.Target.Query = &.{
+    .{ .os_tag = .linux, .cpu_arch = .x86 },
+    .{ .os_tag = .linux, .cpu_arch = .x86_64 },
+    .{ .os_tag = .linux, .cpu_arch = .aarch64 },
+    .{ .os_tag = .windows, .cpu_arch = .x86 },
+    .{ .os_tag = .windows, .cpu_arch = .x86_64 },
+    .{ .os_tag = .windows, .cpu_arch = .aarch64 },
+    .{ .os_tag = .macos, .cpu_arch = .x86_64 },
+    .{ .os_tag = .macos, .cpu_arch = .aarch64 },
+};
+
 fn getVersion(b: *std.Build) SemanticVersion {
     var ast = Ast.parse(b.allocator, @embedFile("build.zig.zon"), .zon) catch @panic("OOM");
     defer ast.deinit(b.allocator);
@@ -57,13 +68,9 @@ fn getVersion(b: *std.Build) SemanticVersion {
     }
 }
 
-pub fn build(b: *std.Build) void {
-    const target = b.standardTargetOptions(.{});
-
-    const optimize = b.standardOptimizeOption(.{});
-
+fn addExe(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode, release: bool) *std.Build.Step.Compile {
     const exe = b.addExecutable(.{
-        .name = "hevi",
+        .name = if (release) b.fmt("hevi-{s}-{s}", .{ @tagName(target.result.cpu.arch), @tagName(target.result.os.tag) }) else "hevi",
         .root_source_file = .{ .path = "src/main.zig" },
         .target = target,
         .optimize = optimize,
@@ -73,7 +80,22 @@ pub fn build(b: *std.Build) void {
     build_options.addOption(SemanticVersion, "version", getVersion(b));
     exe.root_module.addOptions("build_options", build_options);
 
+    return exe;
+}
+
+pub fn build(b: *std.Build) !void {
+    const target = b.standardTargetOptions(.{});
+
+    const optimize = b.standardOptimizeOption(.{});
+
+    const exe = addExe(b, target, optimize, false);
     b.installArtifact(exe);
+
+    const release_step = b.step("release", "Create release builds for all targets");
+    for (release_targets) |rt| {
+        const rexe = addExe(b, b.resolveTargetQuery(rt), .ReleaseSmall, true);
+        release_step.dependOn(&b.addInstallArtifact(rexe, .{ .dest_sub_path = try std.fs.path.join(b.allocator, &.{ "release", rexe.name }) }).step);
+    }
 
     const run_cmd = b.addRunArtifact(exe);
 

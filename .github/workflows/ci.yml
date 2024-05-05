@@ -10,6 +10,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: goto-bus-stop/setup-zig@v2
       - run: zig build
+      - run: zig build release
   lint:
     runs-on: ubuntu-latest
     steps:
