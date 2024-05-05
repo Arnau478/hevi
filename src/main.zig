@@ -102,10 +102,13 @@ fn display(reader: anytype, writer: anytype, options: DisplayOptions) !void {
         const line_len = try reader.readAll(&buf);
 
         if (line_len == 0) {
-            // If `options.skip_lines`
-            if (lines_skipped != 0) {
-                try writer.print("... {d} lines skipped ...\n", .{lines_skipped - 1});
-                try printBuffer(previous_buf[0..previous_line_len.?], count - previous_line_len.?, writer, options);
+            switch (lines_skipped) {
+                0 => {},
+                1 => try printBuffer(previous_buf[0..previous_line_len.?], count - previous_line_len.?, writer, options),
+                else => {
+                    try writer.print("... {d} lines skipped ...\n", .{lines_skipped - 1});
+                    try printBuffer(previous_buf[0..previous_line_len.?], count - previous_line_len.?, writer, options);
+                },
             }
             break;
         }
@@ -118,11 +121,19 @@ fn display(reader: anytype, writer: anytype, options: DisplayOptions) !void {
                     lines_skipped += 1;
                     count += line_len;
                     continue;
-                } else if (lines_skipped != 0) {
-                    try writer.print("... {d} lines skipped ...\n", .{lines_skipped - 1});
-                    try printBuffer(previous_buf[0..p_line_len], count - p_line_len, writer, options);
+                }
 
-                    lines_skipped = 0;
+                switch (lines_skipped) {
+                    0 => {},
+                    1 => {
+                        try printBuffer(previous_buf[0..previous_line_len.?], count - previous_line_len.?, writer, options);
+                        lines_skipped = 0;
+                    },
+                    else => {
+                        try writer.print("... {d} lines skipped ...\n", .{lines_skipped - 1});
+                        try printBuffer(previous_buf[0..previous_line_len.?], count - previous_line_len.?, writer, options);
+                        lines_skipped = 0;
+                    },
                 }
             }
 
