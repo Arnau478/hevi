@@ -3,9 +3,81 @@ const argparse = @import("argparse.zig");
 const hoptions = @import("options.zig");
 const DisplayOptions = hoptions.DisplayOptions;
 const NormalizedSize = @import("NormalizedSize.zig");
+const parser = @import("parser.zig");
 
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 pub const allocator = gpa.allocator();
+
+pub const TextColor = struct {
+    base: Base,
+    dim: bool,
+
+    const Base = enum {
+        black,
+        red,
+        green,
+        yellow,
+        blue,
+        magenta,
+        cyan,
+        white,
+        bright_black,
+        bright_red,
+        bright_green,
+        bright_yellow,
+        bright_blue,
+        bright_magenta,
+        bright_cyan,
+        bright_white,
+    };
+
+    fn ansiCode(self: TextColor, writer: anytype) !void {
+        _ = try writer.write(switch (self.base) {
+            .black => "\x1b[30m",
+            .red => "\x1b[31m",
+            .green => "\x1b[32m",
+            .yellow => "\x1b[33m",
+            .blue => "\x1b[34m",
+            .magenta => "\x1b[35m",
+            .cyan => "\x1b[36m",
+            .white => "\x1b[37m",
+            .bright_black => "\x1b[90m",
+            .bright_red => "\x1b[91m",
+            .bright_green => "\x1b[92m",
+            .bright_yellow => "\x1b[93m",
+            .bright_blue => "\x1b[94m",
+            .bright_magenta => "\x1b[95m",
+            .bright_cyan => "\x1b[96m",
+            .bright_white => "\x1b[97m",
+        });
+
+        if (self.dim) _ = try writer.write("\x1b[2m");
+    }
+};
+
+pub const PaletteColor = enum {
+    normal,
+    normal_alt,
+    c1,
+    c1_alt,
+    c2,
+    c2_alt,
+    c3,
+    c3_alt,
+};
+
+pub const ColorPalette = std.enums.EnumFieldStruct(PaletteColor, TextColor, null);
+
+const palette: ColorPalette = .{
+    .normal = .{ .base = .yellow, .dim = false },
+    .normal_alt = .{ .base = .yellow, .dim = true },
+    .c1 = .{ .base = .red, .dim = false },
+    .c1_alt = .{ .base = .red, .dim = true },
+    .c2 = .{ .base = .green, .dim = false },
+    .c2_alt = .{ .base = .green, .dim = true },
+    .c3 = .{ .base = .blue, .dim = false },
+    .c3_alt = .{ .base = .blue, .dim = true },
+};
 
 inline fn isPrintable(c: u8) bool {
     return switch (c) {
@@ -20,14 +92,14 @@ const DisplayLineOptions = struct {
     show_ascii: bool,
 };
 
-fn displayLine(line: []const u8, writer: anytype, options: DisplayLineOptions) !void {
+fn displayLine(line: []const u8, colors: []const TextColor, writer: anytype, options: DisplayLineOptions) !void {
     if (options.color) {
         try writer.print("\x1b[2m|\x1b[0m ", .{});
     } else try writer.print("| ", .{});
 
-    for (line, 0..) |byte, i| {
+    for (line, colors, 0..) |byte, color, i| {
         if (options.color) {
-            try writer.print("{s}", .{if (isPrintable(byte)) "\x1b[33m" else "\x1b[33m\x1b[2m"});
+            try color.ansiCode(writer);
         }
 
         if (options.uppercase) {
@@ -50,11 +122,15 @@ fn displayLine(line: []const u8, writer: anytype, options: DisplayLineOptions) !
 
     if (options.show_ascii) {
         try writer.print(" ", .{});
-        for (line) |byte| {
+        for (line, colors) |byte, color| {
             const printable = isPrintable(byte);
 
             if (options.color) {
-                try writer.print("{s}", .{if (printable) "\x1b[33m" else "\x1b[2m"});
+                if (printable) {
+                    try color.ansiCode(writer);
+                } else {
+                    _ = try writer.write("\x1b[2m");
+                }
             }
 
             try writer.print("{c}", .{if (printable) byte else '.'});
@@ -74,21 +150,21 @@ fn displayLine(line: []const u8, writer: anytype, options: DisplayLineOptions) !
     try writer.print("\n", .{});
 }
 
-fn printBuffer(line: []const u8, count: usize, writer: anytype, options: DisplayOptions) !void {
+fn printBuffer(line: []const u8, colors: []const TextColor, count: usize, writer: anytype, options: DisplayOptions) !void {
     if (options.show_offset) {
         if (options.uppercase) {
             try writer.print("{X:0>8} ", .{count});
         } else try writer.print("{x:0>8} ", .{count});
     }
 
-    try displayLine(line, writer, .{
+    try displayLine(line, colors[count .. count + line.len], writer, .{
         .color = options.color,
         .uppercase = options.uppercase,
         .show_ascii = options.show_ascii,
     });
 }
 
-fn display(reader: anytype, writer: anytype, options: DisplayOptions) !void {
+fn display(reader: anytype, colors: []const TextColor, writer: anytype, options: DisplayOptions) !void {
     var count: usize = 0;
 
     var buf: [16]u8 = undefined;
@@ -104,10 +180,10 @@ fn display(reader: anytype, writer: anytype, options: DisplayOptions) !void {
         if (line_len == 0) {
             switch (lines_skipped) {
                 0 => {},
-                1 => try printBuffer(previous_buf[0..previous_line_len.?], count - previous_line_len.?, writer, options),
+                1 => try printBuffer(previous_buf[0..previous_line_len.?], colors, count - previous_line_len.?, writer, options),
                 else => {
                     try writer.print("... {d} lines skipped ...\n", .{lines_skipped - 1});
-                    try printBuffer(previous_buf[0..previous_line_len.?], count - previous_line_len.?, writer, options);
+                    try printBuffer(previous_buf[0..previous_line_len.?], colors, count - previous_line_len.?, writer, options);
                 },
             }
             break;
@@ -126,12 +202,12 @@ fn display(reader: anytype, writer: anytype, options: DisplayOptions) !void {
                 switch (lines_skipped) {
                     0 => {},
                     1 => {
-                        try printBuffer(previous_buf[0..previous_line_len.?], count - previous_line_len.?, writer, options);
+                        try printBuffer(previous_buf[0..previous_line_len.?], colors, count - previous_line_len.?, writer, options);
                         lines_skipped = 0;
                     },
                     else => {
                         try writer.print("... {d} lines skipped ...\n", .{lines_skipped - 1});
-                        try printBuffer(previous_buf[0..previous_line_len.?], count - previous_line_len.?, writer, options);
+                        try printBuffer(previous_buf[0..previous_line_len.?], colors, count - previous_line_len.?, writer, options);
                         lines_skipped = 0;
                     },
                 }
@@ -141,7 +217,7 @@ fn display(reader: anytype, writer: anytype, options: DisplayOptions) !void {
             previous_line_len = line_len;
         }
 
-        try printBuffer(line, count, writer, options);
+        try printBuffer(line, colors, count, writer, options);
 
         count += line_len;
     }
@@ -164,5 +240,19 @@ pub fn main() !void {
 
     const stdout = std.io.getStdOut();
 
-    try display(file.reader(), stdout.writer(), try hoptions.getOptions(parsed_args, stdout));
+    const colors = try parser.getColors(allocator, file.reader().any());
+    defer allocator.free(colors);
+
+    try file.seekTo(0);
+
+    const text_colors = try allocator.alloc(TextColor, colors.len);
+    defer allocator.free(text_colors);
+
+    for (colors, text_colors) |color, *text_color| {
+        text_color.* = switch (color) {
+            inline else => |c| @field(palette, @tagName(c)),
+        };
+    }
+
+    try display(file.reader(), text_colors, stdout.writer(), try hoptions.getOptions(parsed_args, stdout));
 }
