@@ -64,6 +64,10 @@ pub const PaletteColor = enum {
     c2_alt,
     c3,
     c3_alt,
+    c4,
+    c4_alt,
+    c5,
+    c5_alt,
 };
 
 pub const ColorPalette = std.enums.EnumFieldStruct(PaletteColor, TextColor, null);
@@ -77,6 +81,10 @@ const palette: ColorPalette = .{
     .c2_alt = .{ .base = .green, .dim = true },
     .c3 = .{ .base = .blue, .dim = false },
     .c3_alt = .{ .base = .blue, .dim = true },
+    .c4 = .{ .base = .magenta, .dim = false },
+    .c4_alt = .{ .base = .magenta, .dim = true },
+    .c5 = .{ .base = .cyan, .dim = false },
+    .c5_alt = .{ .base = .cyan, .dim = true },
 };
 
 inline fn isPrintable(c: u8) bool {
