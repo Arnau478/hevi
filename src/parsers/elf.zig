@@ -20,19 +20,21 @@ pub fn getColors(colors: []PaletteColor, data: []const u8) void {
             setRange(colors, 0, @sizeOf(std.elf.Elf64_Ehdr), .c1);
             const ehdr = reader.readStruct(std.elf.Elf64_Ehdr) catch return;
 
-            fbs.pos = ehdr.e_phoff;
+            fbs.pos = @truncate(ehdr.e_phoff);
             for (0..ehdr.e_phnum) |i| {
                 setRange(colors, fbs.pos, @sizeOf(std.elf.Elf64_Phdr), if (i % 2 == 0) .c2 else .c3);
                 const phdr = reader.readStruct(std.elf.Elf64_Phdr) catch return;
-                if (phdr.p_offset != 0 and phdr.p_type != std.elf.PT_PHDR) setRange(colors, phdr.p_offset, phdr.p_filesz, if (i % 2 == 0) .c2_alt else .c3_alt);
+                if (phdr.p_offset != 0 and phdr.p_type != std.elf.PT_PHDR) {
+                    setRange(colors, @truncate(phdr.p_offset), @truncate(phdr.p_filesz), if (i % 2 == 0) .c2_alt else .c3_alt);
+                }
             }
 
-            fbs.pos = ehdr.e_shoff;
+            fbs.pos = @truncate(ehdr.e_shoff);
             for (0..ehdr.e_shnum) |i| {
                 setRange(colors, fbs.pos, @sizeOf(std.elf.Elf64_Shdr), if (i % 2 == 0) .c4 else .c5);
                 const shdr = reader.readStruct(std.elf.Elf64_Shdr) catch return;
                 if (shdr.sh_offset != 0 and shdr.sh_type != std.elf.SHT_NOBITS and shdr.sh_type != std.elf.SHT_NULL) {
-                    setRange(colors, shdr.sh_offset, shdr.sh_size, if (i % 2 == 0) .c4_alt else .c5_alt);
+                    setRange(colors, @truncate(shdr.sh_offset), @truncate(shdr.sh_size), if (i % 2 == 0) .c4_alt else .c5_alt);
                 }
             }
         },
