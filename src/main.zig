@@ -300,6 +300,7 @@ test "basic dump" {
             .show_ascii = false,
             .skip_lines = false,
             .show_offset = false,
+            .parser = null,
         },
     );
 }
@@ -315,6 +316,7 @@ test "empty dump" {
             .show_ascii = false,
             .skip_lines = false,
             .show_offset = false,
+            .parser = null,
         },
     );
 }
