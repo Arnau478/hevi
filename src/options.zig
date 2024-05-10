@@ -11,6 +11,7 @@ pub const DisplayOptions = struct {
     show_offset: bool,
     show_ascii: bool,
     skip_lines: bool,
+    parser: ?[]const u8,
 };
 
 fn openConfigFile(env_map: std.process.EnvMap) ?std.fs.File {
@@ -43,6 +44,7 @@ pub fn getOptions(args: argparse.ParseResult, stdout: std.fs.File) !DisplayOptio
         .show_offset = true,
         .show_ascii = true,
         .skip_lines = true,
+        .parser = null,
     };
 
     // Config file
@@ -77,7 +79,7 @@ pub fn getOptions(args: argparse.ParseResult, stdout: std.fs.File) !DisplayOptio
             };
             const field_ptr = blk: {
                 inline for (std.meta.fields(DisplayOptions)) |opt_field| {
-                    if (std.mem.eql(u8, name, opt_field.name)) break :blk &@field(options, opt_field.name);
+                    if (std.mem.eql(u8, name, opt_field.name) and opt_field.type == bool) break :blk &@field(options, opt_field.name);
                 }
                 try stderr.writer().print("Error: Invalid field in config file: {s}\n", .{name});
                 return error.InvalidConfig;
@@ -98,6 +100,7 @@ pub fn getOptions(args: argparse.ParseResult, stdout: std.fs.File) !DisplayOptio
     if (args.show_offset) |show_offset| options.show_offset = show_offset;
     if (args.show_ascii) |show_ascii| options.show_ascii = show_ascii;
     if (args.skip_lines) |skip_lines| options.skip_lines = skip_lines;
+    if (args.parser) |parser| options.parser = parser;
 
     return options;
 }

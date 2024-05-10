@@ -257,7 +257,7 @@ pub fn main() !void {
 pub fn dump(data: []const u8, writer: std.io.AnyWriter, options: DisplayOptions) !void {
     var fbs = std.io.fixedBufferStream(data);
 
-    const colors = try parser.getColors(allocator, fbs.reader().any());
+    const colors = try parser.getColors(allocator, fbs.reader().any(), options);
     defer allocator.free(colors);
 
     fbs.reset();

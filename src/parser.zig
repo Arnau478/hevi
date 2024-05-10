@@ -1,4 +1,5 @@
 const std = @import("std");
+const DisplayOptions = @import("options.zig").DisplayOptions;
 const PaletteColor = @import("main.zig").PaletteColor;
 
 const parsers = &.{
@@ -6,14 +7,21 @@ const parsers = &.{
     @import("parsers/data.zig"),
 };
 
-pub fn getColors(allocator: std.mem.Allocator, reader: std.io.AnyReader) ![]const PaletteColor {
+pub fn getColors(allocator: std.mem.Allocator, reader: std.io.AnyReader, options: DisplayOptions) ![]const PaletteColor {
     const data = try reader.readAllAlloc(allocator, std.math.maxInt(usize));
     defer allocator.free(data);
 
     const colors = try allocator.alloc(PaletteColor, data.len);
 
     inline for (parsers) |parser| {
-        if (parser.matches(data)) {
+        if (options.parser) |p| {
+            var split = std.mem.splitAny(u8, @typeName(parser), ".");
+            _ = split.first();
+            if (std.mem.eql(u8, split.next().?, p)) {
+                parser.getColors(colors, data);
+                return colors;
+            }
+        } else if (parser.matches(data)) {
             parser.getColors(colors, data);
             return colors;
         }
