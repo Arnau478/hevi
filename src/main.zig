@@ -246,9 +246,12 @@ pub fn main() !void {
     const file = try std.fs.cwd().openFile(parsed_args.filename, .{});
     defer file.close();
 
+    const data = try file.readToEndAlloc(allocator, std.math.maxInt(usize));
+    defer allocator.free(data);
+
     const stdout = std.io.getStdOut();
 
-    try dump(file, stdout.writer().any(), try hoptions.getOptions(parsed_args, stdout));
+    try dump(data, stdout.writer().any(), try hoptions.getOptions(parsed_args, stdout));
 }
 
 pub fn dump(data: []const u8, writer: std.io.AnyWriter, options: DisplayOptions) !void {
