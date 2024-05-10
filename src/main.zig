@@ -31,7 +31,7 @@ pub const TextColor = struct {
         bright_white,
     };
 
-    fn ansiCode(self: TextColor, writer: anytype) !void {
+    fn ansiCode(self: TextColor, writer: std.io.AnyWriter) !void {
         _ = try writer.write(switch (self.base) {
             .black => "\x1b[30m",
             .red => "\x1b[31m",
@@ -100,7 +100,7 @@ const DisplayLineOptions = struct {
     show_ascii: bool,
 };
 
-fn displayLine(line: []const u8, colors: []const TextColor, writer: anytype, options: DisplayLineOptions) !void {
+fn displayLine(line: []const u8, colors: []const TextColor, writer: std.io.AnyWriter, options: DisplayLineOptions) !void {
     if (options.color) {
         try writer.print("\x1b[2m|\x1b[0m ", .{});
     } else try writer.print("| ", .{});
@@ -158,7 +158,7 @@ fn displayLine(line: []const u8, colors: []const TextColor, writer: anytype, opt
     try writer.print("\n", .{});
 }
 
-fn printBuffer(line: []const u8, colors: []const TextColor, count: usize, writer: anytype, options: DisplayOptions) !void {
+fn printBuffer(line: []const u8, colors: []const TextColor, count: usize, writer: std.io.AnyWriter, options: DisplayOptions) !void {
     if (options.show_offset) {
         if (options.uppercase) {
             try writer.print("{X:0>8} ", .{count});
@@ -172,7 +172,7 @@ fn printBuffer(line: []const u8, colors: []const TextColor, count: usize, writer
     });
 }
 
-fn display(reader: anytype, colors: []const TextColor, writer: anytype, options: DisplayOptions) !void {
+fn display(reader: std.io.AnyReader, colors: []const TextColor, writer: std.io.AnyWriter, options: DisplayOptions) !void {
     var count: usize = 0;
 
     var buf: [16]u8 = undefined;
@@ -248,10 +248,16 @@ pub fn main() !void {
 
     const stdout = std.io.getStdOut();
 
-    const colors = try parser.getColors(allocator, file.reader().any());
+    try dump(file, stdout.writer().any(), try hoptions.getOptions(parsed_args, stdout));
+}
+
+pub fn dump(data: []const u8, writer: std.io.AnyWriter, options: DisplayOptions) !void {
+    var fbs = std.io.fixedBufferStream(data);
+
+    const colors = try parser.getColors(allocator, fbs.reader().any());
     defer allocator.free(colors);
 
-    try file.seekTo(0);
+    fbs.reset();
 
     const text_colors = try allocator.alloc(TextColor, colors.len);
     defer allocator.free(text_colors);
@@ -262,5 +268,50 @@ pub fn main() !void {
         };
     }
 
-    try display(file.reader(), text_colors, stdout.writer(), try hoptions.getOptions(parsed_args, stdout));
+    try display(
+        fbs.reader().any(),
+        text_colors,
+        writer,
+        options,
+    );
+}
+
+fn testDump(expected: []const u8, input: []const u8, options: DisplayOptions) !void {
+    var out = std.ArrayList(u8).init(std.testing.allocator);
+    defer out.deinit();
+    try out.ensureTotalCapacity(expected.len);
+
+    try dump(input, out.writer().any(), options);
+
+    try std.testing.expectEqualSlices(u8, expected, out.items);
+}
+
+test "basic dump" {
+    try testDump(
+        "| 6865 6c6c 6faa                          |\n",
+        "hello\xaa",
+        .{
+            .color = false,
+            .uppercase = false,
+            .show_size = false,
+            .show_ascii = false,
+            .skip_lines = false,
+            .show_offset = false,
+        },
+    );
+}
+
+test "empty dump" {
+    try testDump(
+        "",
+        "",
+        .{
+            .color = false,
+            .uppercase = false,
+            .show_size = false,
+            .show_ascii = false,
+            .skip_lines = false,
+            .show_offset = false,
+        },
+    );
 }
