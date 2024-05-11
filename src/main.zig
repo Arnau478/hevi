@@ -277,6 +277,8 @@ pub fn dump(data: []const u8, writer: std.io.AnyWriter, options: DisplayOptions)
         writer,
         options,
     );
+
+    options.deinit();
 }
 
 fn testDump(expected: []const u8, input: []const u8, options: DisplayOptions) !void {
