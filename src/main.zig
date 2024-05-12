@@ -5,9 +5,6 @@ const DisplayOptions = hoptions.DisplayOptions;
 const NormalizedSize = @import("NormalizedSize.zig");
 const parser = @import("parser.zig");
 
-var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-pub const allocator = gpa.allocator();
-
 pub const TextColor = struct {
     base: Base,
     dim: bool,
@@ -238,7 +235,10 @@ fn display(reader: std.io.AnyReader, colors: []const TextColor, writer: std.io.A
 }
 
 pub fn main() !void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer if (gpa.deinit() == .leak) std.debug.print("Error: MEMORY LEAK!\n", .{});
+
+    const allocator = gpa.allocator();
 
     const args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
@@ -253,10 +253,10 @@ pub fn main() !void {
 
     const stdout = std.io.getStdOut();
 
-    try dump(data, stdout.writer().any(), try hoptions.getOptions(parsed_args, stdout));
+    try dump(allocator, data, stdout.writer().any(), try hoptions.getOptions(allocator, parsed_args, stdout));
 }
 
-pub fn dump(data: []const u8, writer: std.io.AnyWriter, options: DisplayOptions) !void {
+pub fn dump(allocator: std.mem.Allocator, data: []const u8, writer: std.io.AnyWriter, options: DisplayOptions) !void {
     var fbs = std.io.fixedBufferStream(data);
 
     const colors = try parser.getColors(allocator, fbs.reader().any(), options);
@@ -280,7 +280,7 @@ pub fn dump(data: []const u8, writer: std.io.AnyWriter, options: DisplayOptions)
         options,
     );
 
-    options.deinit();
+    options.deinit(allocator);
 }
 
 fn testDump(expected: []const u8, input: []const u8, options: DisplayOptions) !void {
@@ -288,7 +288,7 @@ fn testDump(expected: []const u8, input: []const u8, options: DisplayOptions) !v
     defer out.deinit();
     try out.ensureTotalCapacity(expected.len);
 
-    try dump(input, out.writer().any(), options);
+    try dump(std.testing.allocator, input, out.writer().any(), options);
 
     try std.testing.expectEqualSlices(u8, expected, out.items);
 }

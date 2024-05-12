@@ -2,8 +2,6 @@ const builtin = @import("builtin");
 const std = @import("std");
 const argparse = @import("argparse.zig");
 
-const allocator = @import("main.zig").allocator;
-
 pub const DisplayOptions = struct {
     color: bool,
     uppercase: bool,
@@ -17,7 +15,7 @@ pub const DisplayOptions = struct {
         is_allocated: bool = false,
         string: []const u8,
 
-        pub fn safeSet(options: *DisplayOptions, s: []const u8) void {
+        pub fn safeSet(allocator: std.mem.Allocator, options: *DisplayOptions, s: []const u8) void {
             if (options.parser) |parser| {
                 if (parser.is_allocated) allocator.free(parser.string);
             }
@@ -26,14 +24,14 @@ pub const DisplayOptions = struct {
         }
     };
 
-    pub fn deinit(self: @This()) void {
+    pub fn deinit(self: @This(), allocator: std.mem.Allocator) void {
         if (self.parser) |parser| {
             if (parser.is_allocated) allocator.free(parser.string);
         }
     }
 };
 
-fn openConfigFile(env_map: std.process.EnvMap) ?std.meta.Tuple(&.{ std.fs.File, []const u8 }) {
+fn openConfigFile(allocator: std.mem.Allocator, env_map: std.process.EnvMap) ?std.meta.Tuple(&.{ std.fs.File, []const u8 }) {
     const path: ?[]const u8 = switch (builtin.os.tag) {
         .linux, .macos, .freebsd, .openbsd, .netbsd => if (env_map.get("XDG_CONFIG_HOME")) |xdg_config_home|
             std.fs.path.join(allocator, &.{ xdg_config_home, "hevi/config.zon" }) catch null
@@ -54,7 +52,7 @@ fn openConfigFile(env_map: std.process.EnvMap) ?std.meta.Tuple(&.{ std.fs.File, 
     }, path orelse return null };
 }
 
-pub fn getOptions(args: argparse.ParseResult, stdout: std.fs.File) !DisplayOptions {
+pub fn getOptions(allocator: std.mem.Allocator, args: argparse.ParseResult, stdout: std.fs.File) !DisplayOptions {
     var envs = try std.process.getEnvMap(allocator);
     defer envs.deinit();
 
@@ -70,7 +68,7 @@ pub fn getOptions(args: argparse.ParseResult, stdout: std.fs.File) !DisplayOptio
     };
 
     // Config file
-    if (openConfigFile(envs)) |tuple| {
+    if (openConfigFile(allocator, envs)) |tuple| {
         defer {
             tuple[0].close();
             allocator.free(tuple[1]);
@@ -135,7 +133,7 @@ pub fn getOptions(args: argparse.ParseResult, stdout: std.fs.File) !DisplayOptio
     if (args.show_offset) |show_offset| options.show_offset = show_offset;
     if (args.show_ascii) |show_ascii| options.show_ascii = show_ascii;
     if (args.skip_lines) |skip_lines| options.skip_lines = skip_lines;
-    if (args.parser) |parser| DisplayOptions.OptionString.safeSet(&options, parser);
+    if (args.parser) |parser| DisplayOptions.OptionString.safeSet(allocator, &options, parser);
 
     return options;
 }
