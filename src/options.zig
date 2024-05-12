@@ -1,35 +1,7 @@
 const builtin = @import("builtin");
 const std = @import("std");
 const argparse = @import("argparse.zig");
-
-pub const DisplayOptions = struct {
-    color: bool,
-    uppercase: bool,
-    show_size: bool,
-    show_offset: bool,
-    show_ascii: bool,
-    skip_lines: bool,
-    parser: ?OptionString,
-
-    pub const OptionString = struct {
-        is_allocated: bool = false,
-        string: []const u8,
-
-        pub fn safeSet(allocator: std.mem.Allocator, options: *DisplayOptions, s: []const u8) void {
-            if (options.parser) |parser| {
-                if (parser.is_allocated) allocator.free(parser.string);
-            }
-
-            options.parser = .{ .string = s };
-        }
-    };
-
-    pub fn deinit(self: @This(), allocator: std.mem.Allocator) void {
-        if (self.parser) |parser| {
-            if (parser.is_allocated) allocator.free(parser.string);
-        }
-    }
-};
+const DisplayOptions = @import("DisplayOptions.zig");
 
 fn openConfigFile(allocator: std.mem.Allocator, env_map: std.process.EnvMap) ?std.meta.Tuple(&.{ std.fs.File, []const u8 }) {
     const path: ?[]const u8 = switch (builtin.os.tag) {
