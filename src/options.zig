@@ -33,7 +33,7 @@ pub const DisplayOptions = struct {
     }
 };
 
-fn openConfigFile(env_map: std.process.EnvMap) ?std.fs.File {
+fn openConfigFile(env_map: std.process.EnvMap) ?std.meta.Tuple(&.{ std.fs.File, []const u8 }) {
     const path: ?[]const u8 = switch (builtin.os.tag) {
         .linux, .macos, .freebsd, .openbsd, .netbsd => if (env_map.get("XDG_CONFIG_HOME")) |xdg_config_home|
             std.fs.path.join(allocator, &.{ xdg_config_home, "hevi/config.zon" }) catch null
@@ -48,7 +48,10 @@ fn openConfigFile(env_map: std.process.EnvMap) ?std.fs.File {
         else => null,
     };
 
-    return std.fs.openFileAbsolute(path orelse return null, .{}) catch null;
+    return .{ std.fs.openFileAbsolute(path orelse return null, .{}) catch {
+        allocator.free(path.?);
+        return null;
+    }, path orelse return null };
 }
 
 pub fn getOptions(args: argparse.ParseResult, stdout: std.fs.File) !DisplayOptions {
@@ -67,13 +70,16 @@ pub fn getOptions(args: argparse.ParseResult, stdout: std.fs.File) !DisplayOptio
     };
 
     // Config file
-    if (openConfigFile(envs)) |file| {
-        defer file.close();
+    if (openConfigFile(envs)) |tuple| {
+        defer {
+            tuple[0].close();
+            allocator.free(tuple[1]);
+        }
 
         const stderr = std.io.getStdErr();
         defer stderr.close();
 
-        const source = try file.readToEndAllocOptions(allocator, std.math.maxInt(usize), null, 1, 0);
+        const source = try tuple[0].readToEndAllocOptions(allocator, std.math.maxInt(usize), null, 1, 0);
         defer allocator.free(source);
 
         var ast = try std.zig.Ast.parse(allocator, source, .zon);
