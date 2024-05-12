@@ -257,7 +257,7 @@ pub fn main() !void {
 pub fn dump(data: []const u8, writer: std.io.AnyWriter, options: DisplayOptions) !void {
     var fbs = std.io.fixedBufferStream(data);
 
-    const colors = try parser.getColors(allocator, fbs.reader().any());
+    const colors = try parser.getColors(allocator, fbs.reader().any(), options);
     defer allocator.free(colors);
 
     fbs.reset();
@@ -277,6 +277,8 @@ pub fn dump(data: []const u8, writer: std.io.AnyWriter, options: DisplayOptions)
         writer,
         options,
     );
+
+    options.deinit();
 }
 
 fn testDump(expected: []const u8, input: []const u8, options: DisplayOptions) !void {
@@ -300,6 +302,7 @@ test "basic dump" {
             .show_ascii = false,
             .skip_lines = false,
             .show_offset = false,
+            .parser = null,
         },
     );
 }
@@ -315,6 +318,7 @@ test "empty dump" {
             .show_ascii = false,
             .skip_lines = false,
             .show_offset = false,
+            .parser = null,
         },
     );
 }

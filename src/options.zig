@@ -11,6 +11,26 @@ pub const DisplayOptions = struct {
     show_offset: bool,
     show_ascii: bool,
     skip_lines: bool,
+    parser: ?OptionString,
+
+    pub const OptionString = struct {
+        is_allocated: bool = false,
+        string: []const u8,
+
+        pub fn safeSet(options: *DisplayOptions, s: []const u8) void {
+            if (options.parser) |parser| {
+                if (parser.is_allocated) allocator.free(parser.string);
+            }
+
+            options.parser = .{ .string = s };
+        }
+    };
+
+    pub fn deinit(self: @This()) void {
+        if (self.parser) |parser| {
+            if (parser.is_allocated) allocator.free(parser.string);
+        }
+    }
 };
 
 fn openConfigFile(env_map: std.process.EnvMap) ?std.fs.File {
@@ -43,6 +63,7 @@ pub fn getOptions(args: argparse.ParseResult, stdout: std.fs.File) !DisplayOptio
         .show_offset = true,
         .show_ascii = true,
         .skip_lines = true,
+        .parser = null,
     };
 
     // Config file
@@ -67,22 +88,32 @@ pub fn getOptions(args: argparse.ParseResult, stdout: std.fs.File) !DisplayOptio
         for (root.ast.fields) |field| {
             const name = ast.tokenSlice(ast.firstToken(field) - 2);
             const slice = ast.tokenSlice(ast.firstToken(field));
-            const value = if (ast.tokens.get(ast.firstToken(field)).tag == .identifier and std.mem.eql(u8, slice, "true"))
-                true
-            else if (ast.tokens.get(ast.firstToken(field)).tag == .identifier and std.mem.eql(u8, slice, "false"))
-                false
+            const value = if (ast.tokens.get(ast.firstToken(field)).tag == .identifier or ast.tokens.get(ast.firstToken(field)).tag == .string_literal)
+                slice
             else {
-                try stderr.writer().print("Error: Expected a bool for field {s} in config file\n", .{name});
+                try stderr.writer().print("Error: invalid config found\n", .{});
                 return error.InvalidConfig;
             };
-            const field_ptr = blk: {
-                inline for (std.meta.fields(DisplayOptions)) |opt_field| {
-                    if (std.mem.eql(u8, name, opt_field.name)) break :blk &@field(options, opt_field.name);
+
+            inline for (std.meta.fields(DisplayOptions)) |opt_field| {
+                if (std.mem.eql(u8, name, opt_field.name)) {
+                    @field(options, opt_field.name) = switch (opt_field.type) {
+                        bool => if (std.mem.eql(u8, value, "false"))
+                            false
+                        else if (std.mem.eql(u8, value, "true"))
+                            true
+                        else {
+                            try stderr.writer().print("Error: expected a bool for field {s} in config file\n", .{name});
+                            return error.InvalidConfig;
+                        },
+                        DisplayOptions.OptionString, ?DisplayOptions.OptionString => .{ .is_allocated = true, .string = std.mem.trim(u8, try allocator.dupe(u8, value), "\"") },
+                        else => {
+                            try stderr.writer().print("Error: expected a {s} for field {s} in config file\n", .{ @typeName(opt_field.type), name });
+                            return error.InvalidConfig;
+                        },
+                    };
                 }
-                try stderr.writer().print("Error: Invalid field in config file: {s}\n", .{name});
-                return error.InvalidConfig;
-            };
-            field_ptr.* = value;
+            }
         }
     }
 
@@ -98,6 +129,7 @@ pub fn getOptions(args: argparse.ParseResult, stdout: std.fs.File) !DisplayOptio
     if (args.show_offset) |show_offset| options.show_offset = show_offset;
     if (args.show_ascii) |show_ascii| options.show_ascii = show_ascii;
     if (args.skip_lines) |skip_lines| options.skip_lines = skip_lines;
+    if (args.parser) |parser| DisplayOptions.OptionString.safeSet(&options, parser);
 
     return options;
 }

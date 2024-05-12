@@ -1,6 +1,8 @@
 const build_options = @import("build_options");
 const std = @import("std");
 
+const parsers = @import("parser.zig").parsers;
+
 pub const ParseResult = struct {
     filename: []const u8,
     color: ?bool,
@@ -9,6 +11,7 @@ pub const ParseResult = struct {
     show_offset: ?bool,
     show_ascii: ?bool,
     skip_lines: ?bool,
+    parser: ?[]const u8,
 };
 
 const Flag = union(enum) {
@@ -24,6 +27,10 @@ const Flag = union(enum) {
         enable: []const u8,
         disable: []const u8,
     },
+    string: struct {
+        flag: []const u8,
+        val: *?[]const u8,
+    },
 };
 
 fn printError(comptime fmt: []const u8, args: anytype) noreturn {
@@ -32,6 +39,19 @@ fn printError(comptime fmt: []const u8, args: anytype) noreturn {
 }
 
 fn printHelp() noreturn {
+    const parser_list: [parsers.len][]const u8 = comptime v: {
+        var list: [parsers.len][]const u8 = undefined;
+        var pos: usize = 0;
+        for (parsers) |parser| {
+            var split = std.mem.splitAny(u8, @typeName(parser), ".");
+            _ = split.first();
+
+            list[pos] = split.next().?;
+            pos += 1;
+        }
+        break :v list;
+    };
+
     std.debug.print(
         \\hevi - hex viewer
         \\
@@ -47,6 +67,19 @@ fn printHelp() noreturn {
         \\  --offset, --no-offset           Enable or disable the offset at the left
         \\  --ascii, --no-ascii             Enable or disable the ASCII output
         \\  --skip-lines, --no-skip-lines   Enable or disable skipping of identical lines
+        \\  --parser                        Specify the parser to use. Available parsers:
+        \\
+    , .{});
+
+    for (parser_list) |parser| {
+        // How many tabs (4 spaces) we want to print
+        for (0..9) |_| {
+            std.debug.print("    ", .{});
+        }
+        std.debug.print("- {s}\n", .{parser});
+    }
+
+    std.debug.print(
         \\
         \\Made by Arnau478
         \\
@@ -99,8 +132,19 @@ pub fn parse(args: [][]const u8) ParseResult {
     var show_offset: ?bool = null;
     var show_ascii: ?bool = null;
     var skip_lines: ?bool = null;
+    var parser: ?[]const u8 = null;
 
+    var take_string: bool = false;
+    var string_ptr: *?[]const u8 = undefined;
     for (args) |arg| {
+        if (take_string) {
+            if (arg[0] == '-') printError("expected arg string!", .{});
+            string_ptr.* = arg;
+
+            take_string = false;
+            continue;
+        }
+
         if (arg[0] == '-') {
             if (arg.len <= 1) {
                 printError("expected flag", .{});
@@ -125,6 +169,7 @@ pub fn parse(args: [][]const u8) ParseResult {
                         .{ .toggle = .{ .boolean = &show_offset, .enable = "offset", .disable = "no-offset" } },
                         .{ .toggle = .{ .boolean = &show_ascii, .enable = "ascii", .disable = "no-ascii" } },
                         .{ .toggle = .{ .boolean = &skip_lines, .enable = "skip-lines", .disable = "no-skip-lines" } },
+                        .{ .string = .{ .flag = "parser", .val = &parser } },
                     };
 
                     const found = blk: {
@@ -157,6 +202,12 @@ pub fn parse(args: [][]const u8) ParseResult {
                                         break :blk true;
                                     }
                                 },
+                                .string => |string| {
+                                    take_string = true;
+                                    string_ptr = string.val;
+
+                                    break :blk true;
+                                },
                             }
                         }
                         break :blk false;
@@ -181,5 +232,6 @@ pub fn parse(args: [][]const u8) ParseResult {
         .show_offset = show_offset,
         .show_ascii = show_ascii,
         .skip_lines = skip_lines,
+        .parser = parser,
     };
 }
