@@ -18,8 +18,10 @@ pub fn getColors(allocator: std.mem.Allocator, reader: std.io.AnyReader, options
             var split = std.mem.splitAny(u8, @typeName(parser), ".");
             _ = split.first();
             if (std.mem.eql(u8, split.next().?, p.string)) {
-                parser.getColors(colors, data);
-                return colors;
+                if (parser.matches(data)) {
+                    parser.getColors(colors, data);
+                    return colors;
+                }
             }
         } else if (parser.matches(data)) {
             parser.getColors(colors, data);
