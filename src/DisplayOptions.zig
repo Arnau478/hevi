@@ -1,13 +1,20 @@
 const std = @import("std");
 const DisplayOptions = @This();
 
+/// Whether to use color or not
 color: bool,
+/// If true, uses uppercase; otherwise lowercase
 uppercase: bool,
+/// Print the size of the file at the end
 show_size: bool,
+/// Show a column with the offset into the file
 show_offset: bool,
+/// Show a column with the ASCII interpretation
 show_ascii: bool,
+/// Skip lines if they're the same as the one before and after it
 skip_lines: bool,
-parser: ?OptionString,
+/// Override the binary parser that is used
+parser: ?OptionString = null,
 
 pub const OptionString = struct {
     is_allocated: bool = false,

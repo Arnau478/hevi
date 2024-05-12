@@ -1,9 +1,9 @@
 const std = @import("std");
 const NormalizedSize = @import("NormalizedSize.zig");
-const parser = @import("parser.zig");
 
 pub const DisplayOptions = @import("DisplayOptions.zig");
 
+/// ANSI color
 pub const TextColor = struct {
     base: Base,
     dim: bool,
@@ -51,6 +51,7 @@ pub const TextColor = struct {
     }
 };
 
+/// Generalized color, agnostic to the current color palette
 pub const PaletteColor = enum {
     normal,
     normal_alt,
@@ -66,6 +67,7 @@ pub const PaletteColor = enum {
     c5_alt,
 };
 
+/// A color palette, that associates `PaletteColor`s to `TextColor`s
 pub const ColorPalette = std.enums.EnumFieldStruct(PaletteColor, TextColor, null);
 
 const palette: ColorPalette = .{
@@ -82,6 +84,58 @@ const palette: ColorPalette = .{
     .c5 = .{ .base = .cyan, .dim = false },
     .c5_alt = .{ .base = .cyan, .dim = true },
 };
+
+pub const Parser = enum {
+    elf,
+    pe,
+    data,
+
+    fn Namespace(self: Parser) type {
+        return switch (self) {
+            .elf => @import("parsers/elf.zig"),
+            .pe => @import("parsers/pe.zig"),
+            .data => @import("parsers/data.zig"),
+        };
+    }
+
+    pub fn matches(self: Parser, data: []const u8) bool {
+        return switch (self) {
+            inline else => |p| p.Namespace().matches(data),
+        };
+    }
+
+    pub fn getColors(self: Parser, colors: []PaletteColor, data: []const u8) void {
+        switch (self) {
+            inline else => |p| p.Namespace().getColors(colors, data),
+        }
+    }
+};
+
+fn getColors(allocator: std.mem.Allocator, reader: std.io.AnyReader, options: DisplayOptions) ![]const PaletteColor {
+    const data = try reader.readAllAlloc(allocator, std.math.maxInt(usize));
+    defer allocator.free(data);
+
+    const colors = try allocator.alloc(PaletteColor, data.len);
+
+    inline for (comptime std.enums.values(Parser)) |parser| {
+        if (options.parser) |p| {
+            if (std.mem.eql(u8, @tagName(parser), p.string)) {
+                if (parser.matches(data)) {
+                    parser.getColors(colors, data);
+                    return colors;
+                } else {
+                    std.debug.print("Error: the specified parser doesn't match the file format!\n", .{});
+                    std.process.exit(1);
+                }
+            }
+        } else if (parser.matches(data)) {
+            parser.getColors(colors, data);
+            return colors;
+        }
+    }
+
+    @panic("No parser matched");
+}
 
 inline fn isPrintable(c: u8) bool {
     return switch (c) {
@@ -233,10 +287,11 @@ fn display(reader: std.io.AnyReader, colors: []const TextColor, writer: std.io.A
     }
 }
 
+/// Dump `data` to `writer`
 pub fn dump(allocator: std.mem.Allocator, data: []const u8, writer: std.io.AnyWriter, options: DisplayOptions) !void {
     var fbs = std.io.fixedBufferStream(data);
 
-    const colors = try parser.getColors(allocator, fbs.reader().any(), options);
+    const colors = try getColors(allocator, fbs.reader().any(), options);
     defer allocator.free(colors);
 
     fbs.reset();
@@ -281,7 +336,6 @@ test "basic dump" {
             .show_ascii = false,
             .skip_lines = false,
             .show_offset = false,
-            .parser = null,
         },
     );
 }
@@ -297,7 +351,6 @@ test "empty dump" {
             .show_ascii = false,
             .skip_lines = false,
             .show_offset = false,
-            .parser = null,
         },
     );
 }

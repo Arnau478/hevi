@@ -1,7 +1,7 @@
 const builtin = @import("builtin");
 const std = @import("std");
+const hevi = @import("hevi");
 const argparse = @import("argparse.zig");
-const DisplayOptions = @import("DisplayOptions.zig");
 
 fn openConfigFile(allocator: std.mem.Allocator, env_map: std.process.EnvMap) ?std.meta.Tuple(&.{ std.fs.File, []const u8 }) {
     const path: ?[]const u8 = switch (builtin.os.tag) {
@@ -24,19 +24,18 @@ fn openConfigFile(allocator: std.mem.Allocator, env_map: std.process.EnvMap) ?st
     }, path orelse return null };
 }
 
-pub fn getOptions(allocator: std.mem.Allocator, args: argparse.ParseResult, stdout: std.fs.File) !DisplayOptions {
+pub fn getOptions(allocator: std.mem.Allocator, args: argparse.ParseResult, stdout: std.fs.File) !hevi.DisplayOptions {
     var envs = try std.process.getEnvMap(allocator);
     defer envs.deinit();
 
     // Default values
-    var options = DisplayOptions{
+    var options = hevi.DisplayOptions{
         .color = stdout.supportsAnsiEscapeCodes(),
         .uppercase = false,
         .show_size = true,
         .show_offset = true,
         .show_ascii = true,
         .skip_lines = true,
-        .parser = null,
     };
 
     // Config file
@@ -71,7 +70,7 @@ pub fn getOptions(allocator: std.mem.Allocator, args: argparse.ParseResult, stdo
                 return error.InvalidConfig;
             };
 
-            inline for (std.meta.fields(DisplayOptions)) |opt_field| {
+            inline for (std.meta.fields(hevi.DisplayOptions)) |opt_field| {
                 if (std.mem.eql(u8, name, opt_field.name)) {
                     @field(options, opt_field.name) = switch (opt_field.type) {
                         bool => if (std.mem.eql(u8, value, "false"))
@@ -82,7 +81,7 @@ pub fn getOptions(allocator: std.mem.Allocator, args: argparse.ParseResult, stdo
                             try stderr.writer().print("Error: expected a bool for field {s} in config file\n", .{name});
                             return error.InvalidConfig;
                         },
-                        DisplayOptions.OptionString, ?DisplayOptions.OptionString => .{ .is_allocated = true, .string = std.mem.trim(u8, try allocator.dupe(u8, value), "\"") },
+                        hevi.DisplayOptions.OptionString, ?hevi.DisplayOptions.OptionString => .{ .is_allocated = true, .string = std.mem.trim(u8, try allocator.dupe(u8, value), "\"") },
                         else => {
                             try stderr.writer().print("Error: expected a {s} for field {s} in config file\n", .{ @typeName(opt_field.type), name });
                             return error.InvalidConfig;
@@ -105,7 +104,7 @@ pub fn getOptions(allocator: std.mem.Allocator, args: argparse.ParseResult, stdo
     if (args.show_offset) |show_offset| options.show_offset = show_offset;
     if (args.show_ascii) |show_ascii| options.show_ascii = show_ascii;
     if (args.skip_lines) |skip_lines| options.skip_lines = skip_lines;
-    if (args.parser) |parser| DisplayOptions.OptionString.safeSet(allocator, &options, parser);
+    if (args.parser) |parser| hevi.DisplayOptions.OptionString.safeSet(allocator, &options, parser);
 
     return options;
 }

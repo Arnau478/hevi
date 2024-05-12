@@ -1,5 +1,5 @@
 const std = @import("std");
-const PaletteColor = @import("../main.zig").PaletteColor;
+const hevi = @import("../hevi.zig");
 
 const DosHeader = packed struct(u512) {
     magic: u16,
@@ -32,11 +32,11 @@ pub fn matches(data: []const u8) bool {
     return std.mem.startsWith(u8, data, "MZ");
 }
 
-fn setRange(colors: []PaletteColor, offset: usize, len: usize, color: PaletteColor) void {
+fn setRange(colors: []hevi.PaletteColor, offset: usize, len: usize, color: hevi.PaletteColor) void {
     @memset(colors[offset .. offset + len], color);
 }
 
-pub fn getColors(colors: []PaletteColor, data: []const u8) void {
+pub fn getColors(colors: []hevi.PaletteColor, data: []const u8) void {
     @memset(colors, .normal_alt);
 
     var fbs = std.io.fixedBufferStream(data);
