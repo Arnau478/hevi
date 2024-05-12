@@ -4,6 +4,7 @@ const PaletteColor = @import("main.zig").PaletteColor;
 
 pub const parsers = &.{
     @import("parsers/elf.zig"),
+    @import("parsers/pe.zig"),
     @import("parsers/data.zig"),
 };
 
@@ -33,4 +34,10 @@ pub fn getColors(allocator: std.mem.Allocator, reader: std.io.AnyReader, options
     }
 
     @panic("No parser matched");
+}
+
+test {
+    inline for (parsers) |parser| {
+        _ = parser;
+    }
 }
