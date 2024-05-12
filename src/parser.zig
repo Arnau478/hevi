@@ -2,7 +2,7 @@ const std = @import("std");
 const DisplayOptions = @import("options.zig").DisplayOptions;
 const PaletteColor = @import("main.zig").PaletteColor;
 
-const parsers = &.{
+pub const parsers = &.{
     @import("parsers/elf.zig"),
     @import("parsers/data.zig"),
 };
