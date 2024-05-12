@@ -1,0 +1,66 @@
+.TH HEVI 1 2024-05-12 "hevi 1.0.0-dev"
+.SH NAME
+hevi \- a hex viewer
+
+.SH SYNOPSIS
+hevi [\fIOPTION\fR]... \fBFILE\fR
+
+.SH DESCRIPTION
+hevi is a hex viewer that focuses on modularity, simplicity and appearance.
+
+.SH OPTIONS
+.TP
+\fB\-\-ascii\fR, \fB\-\-no\-ascii\fR
+enable or disable ASCII interpretation
+
+.TP
+\fB\-\-color\fR, \fB\-\-no\-color\fR
+enable or disable color support
+
+.TP
+\fB\-\-lowercase\fR, \fB\-\-uppercase\fR
+toggle between lowercase and uppercase hex
+
+.TP
+\fB\-\-offset\fR, \fB\-\-no\-offset\fR
+enable or disable showing the offset
+
+.TP
+\fB\-\-size\fR, \fB\-\-no\-size\fR
+enable or disable the line showing at the end the size of the file
+
+.TP
+\fB\-\-skip\-lines\fR, \fB\-\-no\-skip\-lines\fR
+enable or disable skipping of identical lines
+
+.TP
+\fB\-\-parser\fR=\fIPARSER\fR
+specify the parser to use. For a list of available parsers type 
+.in +4
+`hevi \-\-help`
+.in
+
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+display a help message and exit
+
+.TP
+\fB\-v\fR, \fB\-\-version\fR
+output version information and exit
+
+.SH FILES
+.TP
+.I \[ti]/.config/hevi/config.zon
+The main configuration file. See also
+.BR hevi (5)
+
+.SH ENVIRONMENT VARIABLES
+.TP
+.I NO_COLOR
+If set with anything disables color. For more information go to https://no-color.org/
+
+.SH REPORTING BUGS
+Report bugs to https://github.com/Arnau478/hevi/issues
+
+.SH SEE ALSO
+.BR hevi (5)

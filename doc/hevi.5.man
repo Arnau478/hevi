@@ -1,0 +1,57 @@
+.TH HEVI 5 2024-05-12 "hevi 1.0.0-dev"
+.SH NAME
+hevi configuration file
+
+.SH SYNOPSIS
+.I ~/.config/hevi/config.zon
+
+.SH DESCRIPTION
+This page explains how the configuration file is structured and what its fields are. 
+
+The configuration file is a zon file, a sort of zig anonymous struct.
+
+These are the fields of the configuration file:
+.in +4
+.nf
+color = \fItrue\fR|\fIfalse\fR
+uppercase = \fItrue\fR|\fIfalse\fR
+show_size = \fItrue\fR|\fIfalse\fR
+show_offset = \fItrue\fR|\fIfalse\fR
+show_ascii = \fItrue\fR|\fIfalse\fR
+show_lines = \fItrue\fR|\fIfalse\fR
+parser = "\fIspecific parser\fR"
+.fi
+.in
+
+You can also not put all the fields in the file, default values will be chosen.
+
+The config file is located at:
+.in +4
+.nf
+\fBLinux\fR, \fBMacOS\fR, \fBFreeBSD\fR, \fBOpenBSD\fR, \fBNetBSD\fR --> \fI$XDG_CONFIG_HOME/hevi/config.zon\fR or if the env doesn't exist \fI$HOME/.config/hevi/config.zon\fR
+\fBWindows\fR --> \fI%APPDATA%/hevi/config.zon\fR
+\fBOther\fR --> Not supported. No config file will be read.
+.in
+
+.SH EXAMPLES
+.in +4
+.EX
+\%.{
+	.color = true,
+	.skip_lines = false,
+	.parser = "data",
+}
+.EE
+.in
+
+.SH NOTES
+hevi has a precedence for configuration and is:
+.nf
+1. Flags
+2. Environment variables
+3. Config file
+4. Defaults
+.in
+
+.SH SEE ALSO
+.BR hevi (1)
