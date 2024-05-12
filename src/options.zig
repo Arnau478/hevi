@@ -106,7 +106,7 @@ pub fn getOptions(args: argparse.ParseResult, stdout: std.fs.File) !DisplayOptio
                             try stderr.writer().print("Error: expected a bool for field {s} in config file\n", .{name});
                             return error.InvalidConfig;
                         },
-                        DisplayOptions.OptionString, ?DisplayOptions.OptionString => .{ .is_allocated = true, .string = std.mem.trim(u8, allocator.dupe(u8, value) catch @panic("OOM"), "\"") },
+                        DisplayOptions.OptionString, ?DisplayOptions.OptionString => .{ .is_allocated = true, .string = std.mem.trim(u8, try allocator.dupe(u8, value), "\"") },
                         else => {
                             try stderr.writer().print("Error: expected a {s} for field {s} in config file\n", .{ @typeName(opt_field.type), name });
                             return error.InvalidConfig;
