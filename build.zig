@@ -68,7 +68,7 @@ fn getVersion(b: *std.Build) SemanticVersion {
     }
 }
 
-fn addExe(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode, release: bool) *std.Build.Step.Compile {
+fn addExe(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode, release: bool, build_options: *std.Build.Step.Options, hevi_mod: *std.Build.Module) *std.Build.Step.Compile {
     const exe = b.addExecutable(.{
         .name = if (release) b.fmt("hevi-{s}-{s}", .{ @tagName(target.result.cpu.arch), @tagName(target.result.os.tag) }) else "hevi",
         .root_source_file = .{ .path = "src/main.zig" },
@@ -76,8 +76,7 @@ fn addExe(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin
         .optimize = optimize,
     });
 
-    var build_options = b.addOptions();
-    build_options.addOption(SemanticVersion, "version", getVersion(b));
+    exe.root_module.addImport("hevi", hevi_mod);
     exe.root_module.addOptions("build_options", build_options);
 
     return exe;
@@ -88,12 +87,36 @@ pub fn build(b: *std.Build) !void {
 
     const optimize = b.standardOptimizeOption(.{});
 
-    const exe = addExe(b, target, optimize, false);
+    var build_options = b.addOptions();
+    build_options.addOption(SemanticVersion, "version", getVersion(b));
+
+    const mod = b.addModule("hevi", .{
+        .root_source_file = .{ .path = "src/hevi.zig" },
+    });
+
+    const exe = addExe(b, target, optimize, false, build_options, mod);
     b.installArtifact(exe);
+
+    const docs_step = b.step("docs", "Build the documentation");
+
+    const obj = b.addObject(.{
+        .name = "hevi",
+        .target = target,
+        .optimize = .Debug,
+        .root_source_file = .{ .path = "src/hevi.zig" },
+    });
+
+    obj.root_module.addOptions("build_options", build_options);
+
+    docs_step.dependOn(&b.addInstallDirectory(.{
+        .source_dir = obj.getEmittedDocs(),
+        .install_dir = .prefix,
+        .install_subdir = "docs",
+    }).step);
 
     const release_step = b.step("release", "Create release builds for all targets");
     for (release_targets) |rt| {
-        const rexe = addExe(b, b.resolveTargetQuery(rt), .ReleaseSmall, true);
+        const rexe = addExe(b, b.resolveTargetQuery(rt), .ReleaseSmall, true, build_options, mod);
         release_step.dependOn(&b.addInstallArtifact(rexe, .{ .dest_sub_path = try std.fs.path.join(b.allocator, &.{ "release", rexe.name }) }).step);
     }
 

@@ -1,39 +1,9 @@
 const builtin = @import("builtin");
 const std = @import("std");
+const hevi = @import("hevi");
 const argparse = @import("argparse.zig");
 
-const allocator = @import("main.zig").allocator;
-
-pub const DisplayOptions = struct {
-    color: bool,
-    uppercase: bool,
-    show_size: bool,
-    show_offset: bool,
-    show_ascii: bool,
-    skip_lines: bool,
-    parser: ?OptionString,
-
-    pub const OptionString = struct {
-        is_allocated: bool = false,
-        string: []const u8,
-
-        pub fn safeSet(options: *DisplayOptions, s: []const u8) void {
-            if (options.parser) |parser| {
-                if (parser.is_allocated) allocator.free(parser.string);
-            }
-
-            options.parser = .{ .string = s };
-        }
-    };
-
-    pub fn deinit(self: @This()) void {
-        if (self.parser) |parser| {
-            if (parser.is_allocated) allocator.free(parser.string);
-        }
-    }
-};
-
-fn openConfigFile(env_map: std.process.EnvMap) ?std.meta.Tuple(&.{ std.fs.File, []const u8 }) {
+fn openConfigFile(allocator: std.mem.Allocator, env_map: std.process.EnvMap) ?std.meta.Tuple(&.{ std.fs.File, []const u8 }) {
     const path: ?[]const u8 = switch (builtin.os.tag) {
         .linux, .macos, .freebsd, .openbsd, .netbsd => if (env_map.get("XDG_CONFIG_HOME")) |xdg_config_home|
             std.fs.path.join(allocator, &.{ xdg_config_home, "hevi/config.zon" }) catch null
@@ -54,23 +24,22 @@ fn openConfigFile(env_map: std.process.EnvMap) ?std.meta.Tuple(&.{ std.fs.File, 
     }, path orelse return null };
 }
 
-pub fn getOptions(args: argparse.ParseResult, stdout: std.fs.File) !DisplayOptions {
+pub fn getOptions(allocator: std.mem.Allocator, args: argparse.ParseResult, stdout: std.fs.File) !hevi.DisplayOptions {
     var envs = try std.process.getEnvMap(allocator);
     defer envs.deinit();
 
     // Default values
-    var options = DisplayOptions{
+    var options = hevi.DisplayOptions{
         .color = stdout.supportsAnsiEscapeCodes(),
         .uppercase = false,
         .show_size = true,
         .show_offset = true,
         .show_ascii = true,
         .skip_lines = true,
-        .parser = null,
     };
 
     // Config file
-    if (openConfigFile(envs)) |tuple| {
+    if (openConfigFile(allocator, envs)) |tuple| {
         defer {
             tuple[0].close();
             allocator.free(tuple[1]);
@@ -101,7 +70,7 @@ pub fn getOptions(args: argparse.ParseResult, stdout: std.fs.File) !DisplayOptio
                 return error.InvalidConfig;
             };
 
-            inline for (std.meta.fields(DisplayOptions)) |opt_field| {
+            inline for (std.meta.fields(hevi.DisplayOptions)) |opt_field| {
                 if (std.mem.eql(u8, name, opt_field.name)) {
                     @field(options, opt_field.name) = switch (opt_field.type) {
                         bool => if (std.mem.eql(u8, value, "false"))
@@ -112,7 +81,7 @@ pub fn getOptions(args: argparse.ParseResult, stdout: std.fs.File) !DisplayOptio
                             try stderr.writer().print("Error: expected a bool for field {s} in config file\n", .{name});
                             return error.InvalidConfig;
                         },
-                        DisplayOptions.OptionString, ?DisplayOptions.OptionString => .{ .is_allocated = true, .string = std.mem.trim(u8, try allocator.dupe(u8, value), "\"") },
+                        hevi.DisplayOptions.OptionString, ?hevi.DisplayOptions.OptionString => .{ .is_allocated = true, .string = std.mem.trim(u8, try allocator.dupe(u8, value), "\"") },
                         else => {
                             try stderr.writer().print("Error: expected a {s} for field {s} in config file\n", .{ @typeName(opt_field.type), name });
                             return error.InvalidConfig;
@@ -135,7 +104,7 @@ pub fn getOptions(args: argparse.ParseResult, stdout: std.fs.File) !DisplayOptio
     if (args.show_offset) |show_offset| options.show_offset = show_offset;
     if (args.show_ascii) |show_ascii| options.show_ascii = show_ascii;
     if (args.skip_lines) |skip_lines| options.skip_lines = skip_lines;
-    if (args.parser) |parser| DisplayOptions.OptionString.safeSet(&options, parser);
+    if (args.parser) |parser| hevi.DisplayOptions.OptionString.safeSet(allocator, &options, parser);
 
     return options;
 }

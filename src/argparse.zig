@@ -1,7 +1,6 @@
-const build_options = @import("build_options");
 const std = @import("std");
-
-const parsers = @import("parser.zig").parsers;
+const build_options = @import("build_options");
+const hevi = @import("hevi");
 
 pub const ParseResult = struct {
     filename: []const u8,
@@ -39,19 +38,6 @@ fn printError(comptime fmt: []const u8, args: anytype) noreturn {
 }
 
 fn printHelp() noreturn {
-    const parser_list: [parsers.len][]const u8 = comptime v: {
-        var list: [parsers.len][]const u8 = undefined;
-        var pos: usize = 0;
-        for (parsers) |parser| {
-            var split = std.mem.splitAny(u8, @typeName(parser), ".");
-            _ = split.first();
-
-            list[pos] = split.next().?;
-            pos += 1;
-        }
-        break :v list;
-    };
-
     std.debug.print(
         \\hevi - hex viewer
         \\
@@ -71,12 +57,12 @@ fn printHelp() noreturn {
         \\
     , .{});
 
-    for (parser_list) |parser| {
+    for (std.enums.values(hevi.Parser)) |parser| {
         // How many tabs (4 spaces) we want to print
         for (0..9) |_| {
             std.debug.print("    ", .{});
         }
-        std.debug.print("- {s}\n", .{parser});
+        std.debug.print("- {s}\n", .{@tagName(parser)});
     }
 
     std.debug.print(
