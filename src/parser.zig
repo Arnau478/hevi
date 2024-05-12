@@ -21,6 +21,9 @@ pub fn getColors(allocator: std.mem.Allocator, reader: std.io.AnyReader, options
                 if (parser.matches(data)) {
                     parser.getColors(colors, data);
                     return colors;
+                } else {
+                    std.debug.print("Error: the specified parser doesn't match the file format!\n", .{});
+                    std.process.exit(1);
                 }
             }
         } else if (parser.matches(data)) {
