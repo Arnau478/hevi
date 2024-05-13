@@ -119,7 +119,7 @@ fn getColors(allocator: std.mem.Allocator, reader: std.io.AnyReader, options: Di
 
     inline for (comptime std.enums.values(Parser)) |parser| {
         if (options.parser) |p| {
-            if (std.mem.eql(u8, @tagName(parser), p.string)) {
+            if (parser == p) {
                 if (parser.matches(data)) {
                     parser.getColors(colors, data);
                     return colors;

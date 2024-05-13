@@ -10,7 +10,7 @@ pub const ParseResult = struct {
     show_offset: ?bool,
     show_ascii: ?bool,
     skip_lines: ?bool,
-    parser: ?[]const u8,
+    parser: ?hevi.Parser,
 };
 
 const Flag = union(enum) {
@@ -218,6 +218,9 @@ pub fn parse(args: [][]const u8) ParseResult {
         .show_offset = show_offset,
         .show_ascii = show_ascii,
         .skip_lines = skip_lines,
-        .parser = parser,
+        .parser = if (parser) |p|
+            std.meta.stringToEnum(hevi.Parser, p) orelse printError("no parser named {s}", .{p})
+        else
+            null,
     };
 }

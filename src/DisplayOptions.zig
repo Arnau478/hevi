@@ -1,4 +1,6 @@
 const std = @import("std");
+const hevi = @import("hevi.zig");
+
 const DisplayOptions = @This();
 
 /// Whether to use color or not
@@ -14,7 +16,7 @@ show_ascii: bool,
 /// Skip lines if they're the same as the one before and after it
 skip_lines: bool,
 /// Override the binary parser that is used
-parser: ?OptionString = null,
+parser: ?hevi.Parser = null,
 
 pub const OptionString = struct {
     is_allocated: bool = false,
@@ -30,7 +32,6 @@ pub const OptionString = struct {
 };
 
 pub fn deinit(self: DisplayOptions, allocator: std.mem.Allocator) void {
-    if (self.parser) |parser| {
-        if (parser.is_allocated) allocator.free(parser.string);
-    }
+    _ = self;
+    _ = allocator;
 }
