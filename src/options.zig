@@ -65,7 +65,24 @@ pub fn getOptions(allocator: std.mem.Allocator, args: argparse.ParseResult, stdo
             }
         };
 
-        const parsed = try std.json.parseFromSlice(OptionalDisplayOptions, allocator, source, .{});
+        const parsed = std.json.parseFromSlice(OptionalDisplayOptions, allocator, source, .{}) catch |err| switch (err) {
+            error.OutOfMemory,
+            error.Overflow,
+            => return error.OutOfMemory,
+            error.InvalidCharacter,
+            error.UnexpectedToken,
+            error.InvalidNumber,
+            error.InvalidEnumTag,
+            error.DuplicateField,
+            error.UnknownField,
+            error.MissingField,
+            error.LengthMismatch,
+            error.SyntaxError,
+            error.UnexpectedEndOfInput,
+            error.BufferUnderrun,
+            error.ValueTooLong,
+            => return error.InvalidConfig,
+        };
         defer parsed.deinit();
 
         inline for (std.meta.fields(OptionalDisplayOptions)) |field| {
