@@ -50,7 +50,7 @@ output version information and exit
 
 .SH FILES
 .TP
-.I \[ti]/.config/hevi/config.zon
+.I \[ti]/.config/hevi/config.json
 The main configuration file. See also
 .BR hevi (5)
 
