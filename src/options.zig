@@ -45,9 +45,6 @@ pub fn getOptions(allocator: std.mem.Allocator, args: argparse.ParseResult, stdo
             allocator.free(tuple[1]);
         }
 
-        const stderr = std.io.getStdErr();
-        defer stderr.close();
-
         const source = try tuple[0].readToEndAllocOptions(allocator, std.math.maxInt(usize), null, 1, 0);
         defer allocator.free(source);
 
