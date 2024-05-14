@@ -2,7 +2,7 @@
 
 ![ci status](https://github.com/Arnau478/hevi/actions/workflows/ci.yml/badge.svg)
 
-![example image](assets/example.png)
+![example image](web/example.png)
 
 ## What is hevi?
 Hevi is a hex viewer, just like `xxd` or `hexdump`.

@@ -1,0 +1,30 @@
+body {
+    background-color: #121212;
+    margin: 0;
+    padding: 0;
+    text-align: center;
+    color: #FFFFFF;
+    font-family: "Fira Sans";
+    padding: 50px;
+}
+
+.subtitle {
+    color: #CCCCCC;
+}
+
+.button {
+    background-color: #FFFFFF;
+    color: #121212;
+    border: 3px solid #FFFFFF;
+    font-family: "Fira Sans";
+    text-decoration: none;
+    font-size: 16px;
+    border-radius: 4px;
+    padding: 5px;
+    transition: 0.25s;
+}
+
+.button:hover {
+    background-color: #121212;
+    color: #FFFFFF;
+}

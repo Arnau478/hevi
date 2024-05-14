@@ -11,21 +11,21 @@ concurrency:
   group: pages
   cancel-in-progress: false
 jobs:
-  docs:
+  web:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: goto-bus-stop/setup-zig@v2
-      - run: zig build docs
+      - run: zig build web
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: ./zig-out/docs
+          path: ./zig-out/web
   deploy:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    needs: docs
+    needs: web
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4

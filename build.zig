@@ -99,19 +99,30 @@ pub fn build(b: *std.Build) !void {
 
     const docs_step = b.step("docs", "Build the documentation");
 
-    const obj = b.addObject(.{
+    const docs_obj = b.addObject(.{
         .name = "hevi",
         .target = target,
         .optimize = .Debug,
         .root_source_file = .{ .path = "src/hevi.zig" },
     });
+    docs_obj.root_module.addOptions("build_options", build_options);
 
-    obj.root_module.addOptions("build_options", build_options);
+    const docs = docs_obj.getEmittedDocs();
 
     docs_step.dependOn(&b.addInstallDirectory(.{
-        .source_dir = obj.getEmittedDocs(),
+        .source_dir = docs,
         .install_dir = .prefix,
         .install_subdir = "docs",
+    }).step);
+
+    const web_step = b.step("web", "Build the whole web page");
+    const web_wf = b.addWriteFiles();
+    _ = web_wf.addCopyDirectory(.{ .path = "web" }, "", .{});
+    _ = web_wf.addCopyDirectory(docs, "docs", .{});
+    web_step.dependOn(&b.addInstallDirectory(.{
+        .source_dir = web_wf.getDirectory(),
+        .install_dir = .prefix,
+        .install_subdir = "web",
     }).step);
 
     const release_step = b.step("release", "Create release builds for all targets");
