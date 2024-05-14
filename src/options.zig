@@ -3,16 +3,38 @@ const std = @import("std");
 const hevi = @import("hevi");
 const argparse = @import("argparse.zig");
 
-fn openConfigFile(allocator: std.mem.Allocator, env_map: std.process.EnvMap) ?std.meta.Tuple(&.{ std.fs.File, []const u8 }) {
+const ConfigFileFormats = enum {
+    json,
+
+    fn Namespace(self: ConfigFileFormats) type {
+        return switch (self) {
+            .json => @import("configs/json.zig"),
+        };
+    }
+
+    pub fn getConfigPath(self: @This()) []const u8 {
+        return switch (self) {
+            inline else => |f| f.Namespace().getConfigPath(),
+        };
+    }
+
+    pub fn parse(self: @This(), options: *hevi.DisplayOptions, allocator: std.mem.Allocator, file: std.fs.File) !void {
+        return switch (self) {
+            inline else => |f| f.Namespace().parse(options, allocator, file),
+        };
+    }
+};
+
+fn openConfigFile(allocator: std.mem.Allocator, env_map: std.process.EnvMap, config_path: []const u8) ?std.meta.Tuple(&.{ std.fs.File, []const u8 }) {
     const path: ?[]const u8 = switch (builtin.os.tag) {
         .linux, .macos, .freebsd, .openbsd, .netbsd => if (env_map.get("XDG_CONFIG_HOME")) |xdg_config_home|
-            std.fs.path.join(allocator, &.{ xdg_config_home, "hevi/config.json" }) catch null
+            std.fs.path.join(allocator, &.{ xdg_config_home, "hevi/", config_path }) catch null
         else if (env_map.get("HOME")) |home|
-            std.fs.path.join(allocator, &.{ home, ".config/hevi/config.json" }) catch null
+            std.fs.path.join(allocator, &.{ home, ".config/hevi/", config_path }) catch null
         else
             null,
         .windows => if (env_map.get("APPDATA")) |appdata|
-            std.fs.path.join(allocator, &.{ appdata, "hevi/config.json" }) catch null
+            std.fs.path.join(allocator, &.{ appdata, "hevi/", config_path }) catch null
         else
             null,
         else => null,
@@ -39,54 +61,18 @@ pub fn getOptions(allocator: std.mem.Allocator, args: argparse.ParseResult, stdo
     };
 
     // Config file
-    if (openConfigFile(allocator, envs)) |tuple| {
-        defer {
-            tuple[0].close();
-            allocator.free(tuple[1]);
-        }
-
-        const source = try tuple[0].readToEndAllocOptions(allocator, std.math.maxInt(usize), null, 1, 0);
-        defer allocator.free(source);
-
-        const OptionalDisplayOptions = struct {
-            color: ?bool = null,
-            uppercase: ?bool = null,
-            show_size: ?bool = null,
-            show_offset: ?bool = null,
-            show_ascii: ?bool = null,
-            skip_lines: ?bool = null,
-            parser: ?hevi.Parser = null,
-
-            comptime {
-                std.debug.assert(std.meta.fields(@This()).len == std.meta.fields(hevi.DisplayOptions).len);
+    for (comptime std.enums.values(ConfigFileFormats)) |format| {
+        if (openConfigFile(allocator, envs, format.getConfigPath())) |tuple| {
+            defer {
+                tuple[0].close();
+                allocator.free(tuple[1]);
             }
-        };
 
-        const parsed = std.json.parseFromSlice(OptionalDisplayOptions, allocator, source, .{}) catch |err| switch (err) {
-            error.OutOfMemory,
-            error.Overflow,
-            => return error.OutOfMemory,
-            error.InvalidCharacter,
-            error.UnexpectedToken,
-            error.InvalidNumber,
-            error.InvalidEnumTag,
-            error.DuplicateField,
-            error.UnknownField,
-            error.MissingField,
-            error.LengthMismatch,
-            error.SyntaxError,
-            error.UnexpectedEndOfInput,
-            error.BufferUnderrun,
-            error.ValueTooLong,
-            => return error.InvalidConfig,
-        };
-        defer parsed.deinit();
-
-        inline for (std.meta.fields(OptionalDisplayOptions)) |field| {
-            if (@field(parsed.value, field.name)) |value| {
-                @field(options, field.name) = value;
-            }
+            try format.parse(&options, allocator, tuple[0]);
+        } else {
+            continue;
         }
+        break;
     }
 
     // Environment variables
