@@ -71,7 +71,7 @@ fn getVersion(b: *std.Build) SemanticVersion {
 fn addExe(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode, release: bool, build_options: *std.Build.Step.Options, hevi_mod: *std.Build.Module) *std.Build.Step.Compile {
     const exe = b.addExecutable(.{
         .name = if (release) b.fmt("hevi-{s}-{s}", .{ @tagName(target.result.cpu.arch), @tagName(target.result.os.tag) }) else "hevi",
-        .root_source_file = .{ .path = "src/main.zig" },
+        .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -91,7 +91,7 @@ pub fn build(b: *std.Build) !void {
     build_options.addOption(SemanticVersion, "version", getVersion(b));
 
     const mod = b.addModule("hevi", .{
-        .root_source_file = .{ .path = "src/hevi.zig" },
+        .root_source_file = b.path("src/hevi.zig"),
     });
 
     const exe = addExe(b, target, optimize, false, build_options, mod);
@@ -103,7 +103,7 @@ pub fn build(b: *std.Build) !void {
         .name = "hevi",
         .target = target,
         .optimize = .Debug,
-        .root_source_file = .{ .path = "src/hevi.zig" },
+        .root_source_file = b.path("src/hevi.zig"),
     });
     docs_obj.root_module.addOptions("build_options", build_options);
 
@@ -117,7 +117,7 @@ pub fn build(b: *std.Build) !void {
 
     const web_step = b.step("web", "Build the whole web page");
     const web_wf = b.addWriteFiles();
-    _ = web_wf.addCopyDirectory(.{ .path = "web" }, "", .{});
+    _ = web_wf.addCopyDirectory(b.path("web"), "", .{});
     _ = web_wf.addCopyDirectory(docs, "docs", .{});
     web_step.dependOn(&b.addInstallDirectory(.{
         .source_dir = web_wf.getDirectory(),
@@ -143,7 +143,7 @@ pub fn build(b: *std.Build) !void {
     run_step.dependOn(&run_cmd.step);
 
     const unit_tests = b.addTest(.{
-        .root_source_file = .{ .path = "src/main.zig" },
+        .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
     });
