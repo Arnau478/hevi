@@ -1,6 +1,7 @@
 const std = @import("std");
 const build_options = @import("build_options");
 const hevi = @import("hevi");
+const main = @import("main.zig");
 
 pub const ParseResult = struct {
     filename: []const u8,
@@ -31,11 +32,6 @@ const Flag = union(enum) {
         val: *?[]const u8,
     },
 };
-
-fn printError(comptime fmt: []const u8, args: anytype) noreturn {
-    std.debug.print("Error: " ++ fmt ++ "\nTip: use `--help` for help\n", args);
-    std.process.exit(1);
-}
 
 fn printHelp() noreturn {
     std.debug.print(
@@ -124,7 +120,7 @@ pub fn parse(args: [][]const u8) ParseResult {
     var string_ptr: *?[]const u8 = undefined;
     for (args) |arg| {
         if (take_string) {
-            if (arg[0] == '-') printError("expected arg string!", .{});
+            if (arg[0] == '-') main.fail("expected arg string", .{});
             string_ptr.* = arg;
 
             take_string = false;
@@ -133,7 +129,7 @@ pub fn parse(args: [][]const u8) ParseResult {
 
         if (arg[0] == '-') {
             if (arg.len <= 1) {
-                printError("expected flag", .{});
+                main.fail("expected flag", .{});
             }
             switch (arg[1]) {
                 'h' => {
@@ -144,7 +140,7 @@ pub fn parse(args: [][]const u8) ParseResult {
                 },
                 '-' => {
                     const name = arg[2..];
-                    if (name.len == 0) printError("expected flag", .{});
+                    if (name.len == 0) main.fail("expected flag", .{});
 
                     const flags: []const Flag = &.{
                         .{ .action = .{ .flag = "help", .action = .help } },
@@ -181,8 +177,8 @@ pub fn parse(args: [][]const u8) ParseResult {
                                     if (set) |s| {
                                         if (toggle.boolean.* != null) {
                                             if (toggle.boolean.*.? != s) {
-                                                printError("`--{s}` and `--{s}` are mutually exclusive", .{ toggle.enable, toggle.disable });
-                                            } else printError("`--{s}` specified multiple times", .{if (s) toggle.enable else toggle.disable});
+                                                main.fail("`--{s}` and `--{s}` are mutually exclusive", .{ toggle.enable, toggle.disable });
+                                            } else main.fail("`--{s}` specified multiple times", .{if (s) toggle.enable else toggle.disable});
                                         } else toggle.boolean.* = s;
 
                                         break :blk true;
@@ -199,19 +195,19 @@ pub fn parse(args: [][]const u8) ParseResult {
                         break :blk false;
                     };
 
-                    if (!found) printError("invalid flag `{s}`", .{arg});
+                    if (!found) main.fail("invalid flag `{s}`", .{arg});
                 },
-                else => printError("invalid flag `{s}`", .{arg}),
+                else => main.fail("invalid flag `{s}`", .{arg}),
             }
         } else {
             if (filename) |_| {
-                printError("multiple files specified", .{});
+                main.fail("multiple files specified", .{});
             } else filename = arg;
         }
     }
 
     return .{
-        .filename = filename orelse printError("no file specified", .{}),
+        .filename = filename orelse main.fail("no file specified", .{}),
         .color = color,
         .uppercase = uppercase,
         .show_size = show_size,
@@ -219,7 +215,7 @@ pub fn parse(args: [][]const u8) ParseResult {
         .show_ascii = show_ascii,
         .skip_lines = skip_lines,
         .parser = if (parser) |p|
-            std.meta.stringToEnum(hevi.Parser, p) orelse printError("no parser named {s}", .{p})
+            std.meta.stringToEnum(hevi.Parser, p) orelse main.fail("no parser named {s}", .{p})
         else
             null,
     };
