@@ -70,7 +70,8 @@ pub const PaletteColor = enum {
 /// A color palette, that associates `PaletteColor`s to `TextColor`s
 pub const ColorPalette = std.enums.EnumFieldStruct(PaletteColor, TextColor, null);
 
-const palette: ColorPalette = .{
+/// The default color palette
+pub const default_palette: ColorPalette = .{
     .normal = .{ .base = .yellow, .dim = false },
     .normal_alt = .{ .base = .yellow, .dim = true },
     .c1 = .{ .base = .red, .dim = false },
@@ -300,7 +301,7 @@ pub fn dump(allocator: std.mem.Allocator, data: []const u8, writer: std.io.AnyWr
 
     for (colors, text_colors) |color, *text_color| {
         text_color.* = switch (color) {
-            inline else => |c| @field(palette, @tagName(c)),
+            inline else => |c| @field(options.palette, @tagName(c)),
         };
     }
 

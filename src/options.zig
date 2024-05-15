@@ -56,6 +56,7 @@ pub fn getOptions(allocator: std.mem.Allocator, args: argparse.ParseResult, stdo
             show_ascii: ?bool = null,
             skip_lines: ?bool = null,
             parser: ?hevi.Parser = null,
+            palette: ?hevi.ColorPalette = null,
 
             comptime {
                 std.debug.assert(std.meta.fields(@This()).len == std.meta.fields(hevi.DisplayOptions).len);

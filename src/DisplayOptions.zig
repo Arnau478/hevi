@@ -17,6 +17,8 @@ show_ascii: bool,
 skip_lines: bool,
 /// Override the binary parser that is used
 parser: ?hevi.Parser = null,
+/// The color palette to use (ignored if `color` is `false`)
+palette: hevi.ColorPalette = hevi.default_palette,
 
 pub const OptionString = struct {
     is_allocated: bool = false,
