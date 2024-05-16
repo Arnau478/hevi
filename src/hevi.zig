@@ -290,6 +290,8 @@ fn display(reader: std.io.AnyReader, colors: []const TextColor, raw_writer: std.
             try writer.print("File size: {} bytes\n", .{count});
         } else try writer.print("File size: {} bytes ({})\n", .{ count, NormalizedSize.fromBytes(count) });
     }
+
+    try buf_writer.flush();
 }
 
 /// Dump `data` to `writer`
