@@ -222,7 +222,7 @@ fn printBuffer(line: []const u8, colors: []const TextColor, count: usize, writer
     });
 }
 
-fn display(reader: std.io.AnyReader, colors: []const TextColor, writer: std.io.AnyWriter, options: DisplayOptions) !void {
+fn display(reader: std.io.AnyReader, colors: []const TextColor, raw_writer: std.io.AnyWriter, options: DisplayOptions) !void {
     var count: usize = 0;
 
     var buf: [16]u8 = undefined;
@@ -231,6 +231,9 @@ fn display(reader: std.io.AnyReader, colors: []const TextColor, writer: std.io.A
     var previous_buf: [16]u8 = undefined;
     var previous_line_len: ?usize = null;
     var lines_skipped: usize = 0;
+
+    var buf_writer = std.io.bufferedWriter(raw_writer);
+    const writer = buf_writer.writer().any();
 
     while (true) {
         const line_len = try reader.readAll(&buf);
@@ -278,6 +281,8 @@ fn display(reader: std.io.AnyReader, colors: []const TextColor, writer: std.io.A
         try printBuffer(line, colors, count, writer, options);
 
         count += line_len;
+
+        try buf_writer.flush();
     }
 
     if (options.show_size) {
