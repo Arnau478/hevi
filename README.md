@@ -39,9 +39,24 @@ You can create a config file and specify the default values for the flags. It fo
     "show_offset": true,
     "show_ascii": false,
     "skip_lines": true,
-    "parser": "data"
+    "parser": "data",
+    "palette": {
+        "normal": { "base": "yellow", "dim": false },
+        "normal_alt": { "base": "yellow", "dim": true },
+        "c1": { "base": "red", "dim": false },
+        "c1_alt": { "base": "red", "dim": true },
+        "c2": { "base": "green", "dim": false },
+        "c2_alt": { "base": "green", "dim": true },
+        "c3": { "base": "blue", "dim": false },
+        "c3_alt": { "base": "blue", "dim": true },
+        "c4": { "base": "magenta", "dim": false },
+        "c4_alt": { "base": "magenta", "dim": true },
+        "c5": { "base": "cyan", "dim": false },
+        "c5_alt": { "base": "cyan", "dim": true }
+    }
 }
 ```
+**Note**: for the `palette` field you must specify all palettes!
 
 The config file is located at:
 | OS                                     | Path                                                                                             |
