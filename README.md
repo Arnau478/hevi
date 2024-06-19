@@ -1,4 +1,7 @@
-# HEVI - A hex viewer
+<div align="center">
+    <h1 align="center">hevi</h1>
+    <h3>a hex viewer</h3>
+</div>
 
 ![ci status](https://github.com/Arnau478/hevi/actions/workflows/ci.yml/badge.svg)
 
