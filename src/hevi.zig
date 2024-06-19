@@ -148,12 +148,15 @@ const DisplayLineOptions = struct {
     color: bool,
     uppercase: bool,
     show_ascii: bool,
+    raw: bool,
 };
 
 fn displayLine(line: []const u8, colors: []const TextColor, writer: std.io.AnyWriter, options: DisplayLineOptions) !void {
-    if (options.color) {
-        try writer.print("\x1b[2m|\x1b[0m ", .{});
-    } else try writer.print("| ", .{});
+    if (!options.raw) {
+        if (options.color) {
+            try writer.print("\x1b[2m|\x1b[0m ", .{});
+        } else try writer.print("| ", .{});
+    }
 
     for (line, colors, 0..) |byte, color, i| {
         if (options.color) {
@@ -174,9 +177,11 @@ fn displayLine(line: []const u8, colors: []const TextColor, writer: std.io.AnyWr
         for (0..std.math.divCeil(usize, 16 - line.len, 2) catch unreachable) |_| try writer.print(" ", .{});
     }
 
-    if (options.color) {
-        try writer.print("\x1b[2m|\x1b[0m", .{});
-    } else try writer.print("|", .{});
+    if (!options.raw) {
+        if (options.color) {
+            try writer.print("\x1b[2m|\x1b[0m", .{});
+        } else try writer.print("|", .{});
+    }
 
     if (options.show_ascii) {
         try writer.print(" ", .{});
@@ -219,6 +224,7 @@ fn printBuffer(line: []const u8, colors: []const TextColor, count: usize, writer
         .color = options.color,
         .uppercase = options.uppercase,
         .show_ascii = options.show_ascii,
+        .raw = options.raw,
     });
 }
 
@@ -312,11 +318,20 @@ pub fn dump(allocator: std.mem.Allocator, data: []const u8, writer: std.io.AnyWr
         };
     }
 
+    var new_options = options;
+    if (options.raw) {
+        new_options.color = false;
+        new_options.show_size = false;
+        new_options.show_ascii = false;
+        new_options.show_offset = false;
+        new_options.skip_lines = false;
+    }
+
     try display(
         fbs.reader().any(),
         text_colors,
         writer,
-        options,
+        new_options,
     );
 
     options.deinit(allocator);
@@ -343,6 +358,22 @@ test "basic dump" {
             .show_ascii = false,
             .skip_lines = false,
             .show_offset = false,
+        },
+    );
+}
+
+test "raw dump" {
+    try testDump(
+        "6865 6c6c 6faa                         \n",
+        "hello\xaa",
+        .{
+            .color = false,
+            .uppercase = false,
+            .show_size = false,
+            .show_ascii = false,
+            .skip_lines = false,
+            .show_offset = false,
+            .raw = true,
         },
     );
 }

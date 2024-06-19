@@ -15,6 +15,8 @@ show_offset: bool,
 show_ascii: bool,
 /// Skip lines if they're the same as the one before and after it
 skip_lines: bool,
+/// Raw dump (no offset, no lines skipped, no decorations, etc.)
+raw: bool = false,
 /// Override the binary parser that is used
 parser: ?hevi.Parser = null,
 /// The color palette to use (ignored if `color` is `false`)

@@ -24,6 +24,7 @@ The command should be used as `hevi <file> [flags]`. The flags are described [be
 | `--offset`/`--no-offset`         | Enable or disable showing the offset                    |
 | `--ascii`/`--no-ascii`           | Enable or disable ASCII interpretation                  |
 | `--skip-lines`/`--no-skip-lines` | Enable or disable skipping of identical lines           |
+| `--raw`                          | Raw format (disables most features)                     |
 | `--parser`                       | Specify the parser to use. For a list use `hevi --help` |
 
 ### Environment variables

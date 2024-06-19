@@ -34,6 +34,10 @@ enable or disable the line showing at the end the size of the file
 enable or disable skipping of identical lines
 
 .TP
+\fB\-\-raw\fR
+raw format (disables most features)
+
+.TP
 \fB\-\-parser\fR=\fIPARSER\fR
 specify the parser to use. For a list of available parsers type 
 .in +4

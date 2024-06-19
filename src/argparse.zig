@@ -11,6 +11,7 @@ pub const ParseResult = struct {
     show_offset: ?bool,
     show_ascii: ?bool,
     skip_lines: ?bool,
+    raw: ?bool,
     parser: ?hevi.Parser,
 };
 
@@ -25,7 +26,7 @@ const Flag = union(enum) {
     toggle: struct {
         boolean: *?bool,
         enable: []const u8,
-        disable: []const u8,
+        disable: ?[]const u8,
     },
     string: struct {
         flag: []const u8,
@@ -49,6 +50,7 @@ fn printHelp() noreturn {
         \\  --offset, --no-offset           Enable or disable the offset at the left
         \\  --ascii, --no-ascii             Enable or disable the ASCII output
         \\  --skip-lines, --no-skip-lines   Enable or disable skipping of identical lines
+        \\  --raw                           Output in raw format (disables most features)
         \\  --parser                        Specify the parser to use. Available parsers:
         \\
     , .{});
@@ -114,6 +116,7 @@ pub fn parse(args: [][]const u8) ParseResult {
     var show_offset: ?bool = null;
     var show_ascii: ?bool = null;
     var skip_lines: ?bool = null;
+    var raw: ?bool = null;
     var parser: ?[]const u8 = null;
 
     var take_string: bool = false;
@@ -151,6 +154,7 @@ pub fn parse(args: [][]const u8) ParseResult {
                         .{ .toggle = .{ .boolean = &show_offset, .enable = "offset", .disable = "no-offset" } },
                         .{ .toggle = .{ .boolean = &show_ascii, .enable = "ascii", .disable = "no-ascii" } },
                         .{ .toggle = .{ .boolean = &skip_lines, .enable = "skip-lines", .disable = "no-skip-lines" } },
+                        .{ .toggle = .{ .boolean = &raw, .enable = "raw", .disable = null } },
                         .{ .string = .{ .flag = "parser", .val = &parser } },
                     };
 
@@ -170,15 +174,15 @@ pub fn parse(args: [][]const u8) ParseResult {
                                     var set: ?bool = null;
                                     if (std.mem.eql(u8, name, toggle.enable)) {
                                         set = true;
-                                    } else if (std.mem.eql(u8, name, toggle.disable)) {
+                                    } else if (toggle.disable != null and std.mem.eql(u8, name, toggle.disable.?)) {
                                         set = false;
                                     }
 
                                     if (set) |s| {
                                         if (toggle.boolean.* != null) {
                                             if (toggle.boolean.*.? != s) {
-                                                main.fail("`--{s}` and `--{s}` are mutually exclusive", .{ toggle.enable, toggle.disable });
-                                            } else main.fail("`--{s}` specified multiple times", .{if (s) toggle.enable else toggle.disable});
+                                                main.fail("`--{s}` and `--{s}` are mutually exclusive", .{ toggle.enable, toggle.disable.? });
+                                            } else main.fail("`--{s}` specified multiple times", .{if (s) toggle.enable else toggle.disable.?});
                                         } else toggle.boolean.* = s;
 
                                         break :blk true;
@@ -214,6 +218,7 @@ pub fn parse(args: [][]const u8) ParseResult {
         .show_offset = show_offset,
         .show_ascii = show_ascii,
         .skip_lines = skip_lines,
+        .raw = raw,
         .parser = if (parser) |p|
             std.meta.stringToEnum(hevi.Parser, p) orelse main.fail("no parser named {s}", .{p})
         else

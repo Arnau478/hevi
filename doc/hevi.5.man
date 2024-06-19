@@ -18,7 +18,8 @@ uppercase: \fItrue\fR|\fIfalse\fR
 show_size: \fItrue\fR|\fIfalse\fR
 show_offset: \fItrue\fR|\fIfalse\fR
 show_ascii: \fItrue\fR|\fIfalse\fR
-show_lines: \fItrue\fR|\fIfalse\fR
+skip_lines: \fItrue\fR|\fIfalse\fR
+raw: \fItrue\fR|\fIfalse\fR
 parser: "\fIspecific parser\fR"
 palette: {\fIpalettes\fR}
 .fi

@@ -55,6 +55,7 @@ pub fn getOptions(allocator: std.mem.Allocator, args: argparse.ParseResult, stdo
             show_offset: ?bool = null,
             show_ascii: ?bool = null,
             skip_lines: ?bool = null,
+            raw: ?bool = null,
             parser: ?hevi.Parser = null,
             palette: ?hevi.ColorPalette = null,
 
@@ -102,6 +103,7 @@ pub fn getOptions(allocator: std.mem.Allocator, args: argparse.ParseResult, stdo
     if (args.show_offset) |show_offset| options.show_offset = show_offset;
     if (args.show_ascii) |show_ascii| options.show_ascii = show_ascii;
     if (args.skip_lines) |skip_lines| options.skip_lines = skip_lines;
+    if (args.raw) |raw| options.raw = raw;
     if (args.parser) |parser| options.parser = parser;
 
     return options;
