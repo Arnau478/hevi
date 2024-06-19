@@ -41,3 +41,8 @@ pub fn main() void {
         else => fail("{s}", .{@errorName(err)}),
     };
 }
+
+test {
+    _ = argparse;
+    _ = options;
+}

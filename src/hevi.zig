@@ -333,8 +333,10 @@ pub fn dump(allocator: std.mem.Allocator, data: []const u8, writer: std.io.AnyWr
         writer,
         new_options,
     );
+}
 
-    options.deinit(allocator);
+test {
+    _ = std.testing.refAllDeclsRecursive(@This());
 }
 
 fn testDump(expected: []const u8, input: []const u8, options: DisplayOptions) !void {
@@ -364,7 +366,7 @@ test "basic dump" {
 
 test "raw dump" {
     try testDump(
-        "6865 6c6c 6faa                         \n",
+        "6865 6c6c 6faa                          \n",
         "hello\xaa",
         .{
             .color = false,

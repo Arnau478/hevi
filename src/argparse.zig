@@ -108,7 +108,7 @@ fn printVersion() noreturn {
     std.process.exit(0);
 }
 
-pub fn parse(args: [][]const u8) ParseResult {
+pub fn parse(args: []const []const u8) ParseResult {
     var filename: ?[]const u8 = null;
     var color: ?bool = null;
     var uppercase: ?bool = null;
@@ -189,10 +189,12 @@ pub fn parse(args: [][]const u8) ParseResult {
                                     }
                                 },
                                 .string => |string| {
-                                    take_string = true;
-                                    string_ptr = string.val;
+                                    if (std.mem.eql(u8, name, string.flag)) {
+                                        take_string = true;
+                                        string_ptr = string.val;
 
-                                    break :blk true;
+                                        break :blk true;
+                                    }
                                 },
                             }
                         }
@@ -224,4 +226,108 @@ pub fn parse(args: [][]const u8) ParseResult {
         else
             null,
     };
+}
+
+test "only filename" {
+    try std.testing.expectEqualDeep(parse(&.{
+        "foo",
+    }), ParseResult{
+        .filename = "foo",
+        .color = null,
+        .uppercase = null,
+        .show_size = null,
+        .show_offset = null,
+        .show_ascii = null,
+        .skip_lines = null,
+        .raw = null,
+        .parser = null,
+    });
+}
+
+test "toggle flag" {
+    try std.testing.expectEqualDeep(parse(&.{
+        "foo",
+        "--color",
+    }), ParseResult{
+        .filename = "foo",
+        .color = true,
+        .uppercase = null,
+        .show_size = null,
+        .show_offset = null,
+        .show_ascii = null,
+        .skip_lines = null,
+        .raw = null,
+        .parser = null,
+    });
+
+    try std.testing.expectEqualDeep(parse(&.{
+        "foo",
+        "--no-color",
+    }), ParseResult{
+        .filename = "foo",
+        .color = false,
+        .uppercase = null,
+        .show_size = null,
+        .show_offset = null,
+        .show_ascii = null,
+        .skip_lines = null,
+        .raw = null,
+        .parser = null,
+    });
+
+    try std.testing.expectEqualDeep(parse(&.{
+        "foo",
+        "--color",
+        "--lowercase",
+        "--size",
+        "--no-offset",
+        "--ascii",
+        "--no-skip-lines",
+    }), ParseResult{
+        .filename = "foo",
+        .color = true,
+        .uppercase = false,
+        .show_size = true,
+        .show_offset = false,
+        .show_ascii = true,
+        .skip_lines = false,
+        .raw = null,
+        .parser = null,
+    });
+}
+
+test "string arg" {
+    try std.testing.expectEqualDeep(parse(&.{
+        "foo",
+        "--parser",
+        "data",
+    }), ParseResult{
+        .filename = "foo",
+        .color = null,
+        .uppercase = null,
+        .show_size = null,
+        .show_offset = null,
+        .show_ascii = null,
+        .skip_lines = null,
+        .raw = null,
+        .parser = .data,
+    });
+
+    try std.testing.expectEqualDeep(parse(&.{
+        "foo",
+        "--size",
+        "--parser",
+        "data",
+        "--offset",
+    }), ParseResult{
+        .filename = "foo",
+        .color = null,
+        .uppercase = null,
+        .show_size = true,
+        .show_offset = true,
+        .show_ascii = null,
+        .skip_lines = null,
+        .raw = null,
+        .parser = .data,
+    });
 }
