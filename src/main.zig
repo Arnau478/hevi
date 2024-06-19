@@ -3,6 +3,32 @@ const hevi = @import("hevi");
 const argparse = @import("argparse.zig");
 const options = @import("options.zig");
 
+pub const std_options = std.Options{
+    .logFn = logFn,
+};
+
+fn logFn(comptime message_level: std.log.Level, comptime scope: @Type(.EnumLiteral), comptime format: []const u8, args: anytype) void {
+    const level_txt = comptime message_level.asText();
+    const prefix2 = if (scope == .default) ": " else "(" ++ @tagName(scope) ++ "): ";
+    const stderr = std.io.getStdErr();
+    var bw = std.io.bufferedWriter(stderr.writer());
+    const writer = bw.writer();
+
+    std.debug.lockStdErr();
+    defer std.debug.unlockStdErr();
+
+    const log_color = stderr.supportsAnsiEscapeCodes();
+
+    nosuspend {
+        writer.print(
+            "{s}" ++ level_txt ++ "{s}",
+            if (log_color) .{ "\x1b[31m\x1b[1m", "\x1b[0m" } else .{ "", "" },
+        ) catch return;
+        writer.print(prefix2 ++ format ++ "\n", args) catch return;
+        bw.flush() catch return;
+    }
+}
+
 pub fn fail(comptime fmt: []const u8, args: anytype) noreturn {
     std.log.err(fmt, args);
     std.process.exit(1);
