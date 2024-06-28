@@ -78,6 +78,7 @@ fn addExe(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin
 
     exe.root_module.addImport("hevi", hevi_mod);
     exe.root_module.addOptions("build_options", build_options);
+    exe.root_module.addImport("ziggy", b.dependency("ziggy", .{}).module("ziggy"));
 
     return exe;
 }

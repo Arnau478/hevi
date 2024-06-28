@@ -5,47 +5,96 @@ pub const DisplayOptions = @import("DisplayOptions.zig");
 
 /// ANSI color
 pub const TextColor = struct {
-    base: Base,
-    dim: bool,
+    foreground: ?BaseColor = null,
+    background: ?BaseColor = null,
+    dim: bool = false,
 
-    const Base = enum {
-        black,
-        red,
-        green,
-        yellow,
-        blue,
-        magenta,
-        cyan,
-        white,
-        bright_black,
-        bright_red,
-        bright_green,
-        bright_yellow,
-        bright_blue,
-        bright_magenta,
-        bright_cyan,
-        bright_white,
+    pub const BaseColor = union(enum) {
+        standard: Standard,
+        true_color: TrueColor,
+
+        pub const Standard = enum(u4) {
+            black,
+            red,
+            green,
+            yellow,
+            blue,
+            magenta,
+            cyan,
+            white,
+            bright_black,
+            bright_red,
+            bright_green,
+            bright_yellow,
+            bright_blue,
+            bright_magenta,
+            bright_cyan,
+            bright_white,
+        };
+
+        pub const TrueColor = struct {
+            r: u8,
+            g: u8,
+            b: u8,
+        };
     };
 
     fn ansiCode(self: TextColor, writer: std.io.AnyWriter) !void {
-        _ = try writer.write(switch (self.base) {
-            .black => "\x1b[30m",
-            .red => "\x1b[31m",
-            .green => "\x1b[32m",
-            .yellow => "\x1b[33m",
-            .blue => "\x1b[34m",
-            .magenta => "\x1b[35m",
-            .cyan => "\x1b[36m",
-            .white => "\x1b[37m",
-            .bright_black => "\x1b[90m",
-            .bright_red => "\x1b[91m",
-            .bright_green => "\x1b[92m",
-            .bright_yellow => "\x1b[93m",
-            .bright_blue => "\x1b[94m",
-            .bright_magenta => "\x1b[95m",
-            .bright_cyan => "\x1b[96m",
-            .bright_white => "\x1b[97m",
-        });
+        if (self.foreground) |foreground| {
+            switch (foreground) {
+                .standard => |standard| _ = try writer.write(switch (standard) {
+                    .black => "\x1b[30m",
+                    .red => "\x1b[31m",
+                    .green => "\x1b[32m",
+                    .yellow => "\x1b[33m",
+                    .blue => "\x1b[34m",
+                    .magenta => "\x1b[35m",
+                    .cyan => "\x1b[36m",
+                    .white => "\x1b[37m",
+                    .bright_black => "\x1b[90m",
+                    .bright_red => "\x1b[91m",
+                    .bright_green => "\x1b[92m",
+                    .bright_yellow => "\x1b[93m",
+                    .bright_blue => "\x1b[94m",
+                    .bright_magenta => "\x1b[95m",
+                    .bright_cyan => "\x1b[96m",
+                    .bright_white => "\x1b[97m",
+                }),
+                .true_color => |true_color| try writer.print("\x1b[38;2;{d};{d};{d}m", .{
+                    true_color.r,
+                    true_color.g,
+                    true_color.b,
+                }),
+            }
+        }
+
+        if (self.background) |background| {
+            switch (background) {
+                .standard => |standard| _ = try writer.write(switch (standard) {
+                    .black => "\x1b[40m",
+                    .red => "\x1b[41m",
+                    .green => "\x1b[42m",
+                    .yellow => "\x1b[43m",
+                    .blue => "\x1b[44m",
+                    .magenta => "\x1b[45m",
+                    .cyan => "\x1b[46m",
+                    .white => "\x1b[47m",
+                    .bright_black => "\x1b[100m",
+                    .bright_red => "\x1b[101m",
+                    .bright_green => "\x1b[102m",
+                    .bright_yellow => "\x1b[103m",
+                    .bright_blue => "\x1b[104m",
+                    .bright_magenta => "\x1b[105m",
+                    .bright_cyan => "\x1b[106m",
+                    .bright_white => "\x1b[107m",
+                }),
+                .true_color => |true_color| try writer.print("\x1b[48;2;{d};{d};{d}m", .{
+                    true_color.r,
+                    true_color.g,
+                    true_color.b,
+                }),
+            }
+        }
 
         if (self.dim) _ = try writer.write("\x1b[2m");
     }
@@ -72,18 +121,18 @@ pub const ColorPalette = std.enums.EnumFieldStruct(PaletteColor, TextColor, null
 
 /// The default color palette
 pub const default_palette: ColorPalette = .{
-    .normal = .{ .base = .yellow, .dim = false },
-    .normal_alt = .{ .base = .yellow, .dim = true },
-    .c1 = .{ .base = .red, .dim = false },
-    .c1_alt = .{ .base = .red, .dim = true },
-    .c2 = .{ .base = .green, .dim = false },
-    .c2_alt = .{ .base = .green, .dim = true },
-    .c3 = .{ .base = .blue, .dim = false },
-    .c3_alt = .{ .base = .blue, .dim = true },
-    .c4 = .{ .base = .magenta, .dim = false },
-    .c4_alt = .{ .base = .magenta, .dim = true },
-    .c5 = .{ .base = .cyan, .dim = false },
-    .c5_alt = .{ .base = .cyan, .dim = true },
+    .normal = .{ .foreground = .{ .standard = .yellow } },
+    .normal_alt = .{ .foreground = .{ .standard = .yellow }, .dim = true },
+    .c1 = .{ .foreground = .{ .standard = .red } },
+    .c1_alt = .{ .foreground = .{ .standard = .red }, .dim = true },
+    .c2 = .{ .foreground = .{ .standard = .green } },
+    .c2_alt = .{ .foreground = .{ .standard = .green }, .dim = true },
+    .c3 = .{ .foreground = .{ .standard = .blue } },
+    .c3_alt = .{ .foreground = .{ .standard = .blue }, .dim = true },
+    .c4 = .{ .foreground = .{ .standard = .magenta } },
+    .c4_alt = .{ .foreground = .{ .standard = .magenta }, .dim = true },
+    .c5 = .{ .foreground = .{ .standard = .cyan } },
+    .c5_alt = .{ .foreground = .{ .standard = .cyan }, .dim = true },
 };
 
 pub const Parser = enum {

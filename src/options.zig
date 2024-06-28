@@ -1,18 +1,19 @@
 const builtin = @import("builtin");
 const std = @import("std");
 const hevi = @import("hevi");
+const ziggy = @import("ziggy");
 const argparse = @import("argparse.zig");
 
 fn openConfigFile(allocator: std.mem.Allocator, env_map: std.process.EnvMap) ?std.meta.Tuple(&.{ std.fs.File, []const u8 }) {
     const path: ?[]const u8 = switch (builtin.os.tag) {
         .linux, .macos, .freebsd, .openbsd, .netbsd => if (env_map.get("XDG_CONFIG_HOME")) |xdg_config_home|
-            std.fs.path.join(allocator, &.{ xdg_config_home, "hevi/config.json" }) catch null
+            std.fs.path.join(allocator, &.{ xdg_config_home, "hevi/config.ziggy" }) catch null
         else if (env_map.get("HOME")) |home|
-            std.fs.path.join(allocator, &.{ home, ".config/hevi/config.json" }) catch null
+            std.fs.path.join(allocator, &.{ home, ".config/hevi/config.ziggy" }) catch null
         else
             null,
         .windows => if (env_map.get("APPDATA")) |appdata|
-            std.fs.path.join(allocator, &.{ appdata, "hevi/config.json" }) catch null
+            std.fs.path.join(allocator, &.{ appdata, "hevi/config.ziggy" }) catch null
         else
             null,
         else => null,
@@ -23,6 +24,137 @@ fn openConfigFile(allocator: std.mem.Allocator, env_map: std.process.EnvMap) ?st
         return null;
     }, path orelse return null };
 }
+
+const Config = struct {
+    color: ?bool = null,
+    uppercase: ?bool = null,
+    show_size: ?bool = null,
+    show_offset: ?bool = null,
+    show_ascii: ?bool = null,
+    skip_lines: ?bool = null,
+    raw: ?bool = null,
+    parser: ?hevi.Parser = null,
+    palette: ?Palette = null,
+
+    const Palette = struct {
+        normal: Color,
+        normal_alt: Color,
+        c1: Color,
+        c1_alt: Color,
+        c2: Color,
+        c2_alt: Color,
+        c3: Color,
+        c3_alt: Color,
+        c4: Color,
+        c4_alt: Color,
+        c5: Color,
+        c5_alt: Color,
+
+        const Color = struct {
+            col: hevi.TextColor,
+
+            fn parseBase(str: []const u8) ?hevi.TextColor.BaseColor {
+                inline for (std.meta.fields(hevi.TextColor.BaseColor.Standard)) |field| {
+                    if (std.mem.eql(u8, field.name, str)) {
+                        return .{
+                            .standard = @field(hevi.TextColor.BaseColor.Standard, field.name),
+                        };
+                    }
+                }
+
+                return null;
+            }
+
+            pub fn fromString(str: []const u8) ?Color {
+                var iter = std.mem.splitScalar(u8, str, ':');
+
+                const fg = iter.next() orelse return null;
+
+                var maybe_bg = iter.next();
+                if (maybe_bg) |bg| {
+                    if (bg.len == 0) maybe_bg = null;
+                }
+
+                const maybe_mod = iter.next();
+
+                if (iter.next() != null) return null;
+
+                var dim = false;
+
+                if (maybe_mod) |mod| {
+                    if (std.mem.eql(u8, mod, "dim")) {
+                        dim = true;
+                    } else {
+                        return null;
+                    }
+                }
+
+                return .{
+                    .col = .{
+                        .foreground = parseBase(fg) orelse return null,
+                        .background = if (maybe_bg) |bg| parseBase(bg) orelse return null else null,
+                        .dim = dim,
+                    },
+                };
+            }
+
+            pub const ziggy_options = struct {
+                pub fn parse(parser: *ziggy.Parser, first_tok: ziggy.Tokenizer.Token) !Color {
+                    try parser.must(first_tok, .at);
+                    const ident = try parser.nextMust(.identifier);
+                    if (!std.mem.eql(u8, ident.loc.src(parser.code), "color")) {
+                        return parser.addError(.{
+                            .syntax = .{
+                                .name = "@color",
+                                .sel = ident.loc.getSelection(parser.code),
+                            },
+                        });
+                    }
+                    _ = try parser.nextMust(.lp);
+                    const str = try parser.nextMust(.string);
+                    _ = try parser.nextMust(.rp);
+
+                    return Color.fromString(str.loc.unquote(parser.code) orelse {
+                        return parser.addError(.{
+                            .syntax = .{
+                                .name = first_tok.tag.lexeme(),
+                                .sel = first_tok.loc.getSelection(parser.code),
+                            },
+                        });
+                    }) orelse {
+                        return parser.addError(.{
+                            .syntax = .{
+                                .name = first_tok.tag.lexeme(),
+                                .sel = first_tok.loc.getSelection(parser.code),
+                            },
+                        });
+                    };
+                }
+            };
+
+            pub fn toHevi(self: Color) hevi.TextColor {
+                return self.col;
+            }
+        };
+
+        pub fn toHevi(self: Palette) hevi.ColorPalette {
+            return .{
+                .normal = self.normal.toHevi(),
+                .normal_alt = self.normal_alt.toHevi(),
+                .c1 = self.c1.toHevi(),
+                .c1_alt = self.c1_alt.toHevi(),
+                .c2 = self.c2.toHevi(),
+                .c2_alt = self.c2_alt.toHevi(),
+                .c3 = self.c3.toHevi(),
+                .c3_alt = self.c3_alt.toHevi(),
+                .c4 = self.c4.toHevi(),
+                .c4_alt = self.c4_alt.toHevi(),
+                .c5 = self.c5.toHevi(),
+                .c5_alt = self.c5_alt.toHevi(),
+            };
+        }
+    };
+};
 
 pub fn getOptions(allocator: std.mem.Allocator, args: argparse.ParseResult, stdout: std.fs.File) !hevi.DisplayOptions {
     var envs = try std.process.getEnvMap(allocator);
@@ -36,6 +168,7 @@ pub fn getOptions(allocator: std.mem.Allocator, args: argparse.ParseResult, stdo
         .show_offset = true,
         .show_ascii = true,
         .skip_lines = true,
+        .raw = false,
     };
 
     // Config file
@@ -48,47 +181,31 @@ pub fn getOptions(allocator: std.mem.Allocator, args: argparse.ParseResult, stdo
         const source = try tuple[0].readToEndAllocOptions(allocator, std.math.maxInt(usize), null, 1, 0);
         defer allocator.free(source);
 
-        const OptionalDisplayOptions = struct {
-            color: ?bool = null,
-            uppercase: ?bool = null,
-            show_size: ?bool = null,
-            show_offset: ?bool = null,
-            show_ascii: ?bool = null,
-            skip_lines: ?bool = null,
-            raw: ?bool = null,
-            parser: ?hevi.Parser = null,
-            palette: ?hevi.ColorPalette = null,
+        var arena = std.heap.ArenaAllocator.init(allocator);
+        defer arena.deinit();
 
-            comptime {
-                std.debug.assert(std.meta.fields(@This()).len == std.meta.fields(hevi.DisplayOptions).len);
-            }
+        var diag = ziggy.Diagnostic{ .path = tuple[1] };
+        defer diag.deinit(arena.allocator());
+
+        const config = ziggy.parseLeaky(Config, arena.allocator(), source, .{
+            .diagnostic = &diag,
+        }) catch |err| switch (err) {
+            error.OutOfMemory, error.Overflow => return error.OutOfMemory,
+            error.Syntax => {
+                std.log.err("{}", .{diag});
+                return error.InvalidConfig;
+            },
         };
 
-        const parsed = std.json.parseFromSlice(OptionalDisplayOptions, allocator, source, .{}) catch |err| switch (err) {
-            error.OutOfMemory,
-            error.Overflow,
-            => return error.OutOfMemory,
-            error.InvalidCharacter,
-            error.UnexpectedToken,
-            error.InvalidNumber,
-            error.InvalidEnumTag,
-            error.DuplicateField,
-            error.UnknownField,
-            error.MissingField,
-            error.LengthMismatch,
-            error.SyntaxError,
-            error.UnexpectedEndOfInput,
-            error.BufferUnderrun,
-            error.ValueTooLong,
-            => return error.InvalidConfig,
-        };
-        defer parsed.deinit();
-
-        inline for (std.meta.fields(OptionalDisplayOptions)) |field| {
-            if (@field(parsed.value, field.name)) |value| {
-                @field(options, field.name) = value;
-            }
-        }
+        if (config.color) |color| options.color = color;
+        if (config.uppercase) |uppercase| options.uppercase = uppercase;
+        if (config.show_size) |show_size| options.show_size = show_size;
+        if (config.show_offset) |show_offset| options.show_offset = show_offset;
+        if (config.show_ascii) |show_ascii| options.show_ascii = show_ascii;
+        if (config.skip_lines) |skip_lines| options.skip_lines = skip_lines;
+        if (config.raw) |raw| options.raw = raw;
+        if (config.parser) |parser| options.parser = parser;
+        if (config.palette) |palette| options.palette = palette.toHevi();
     }
 
     // Environment variables
