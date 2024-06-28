@@ -62,6 +62,16 @@ const Config = struct {
                     }
                 }
 
+                if (str.len == 7 and str[0] == '#') {
+                    return .{
+                        .true_color = .{
+                            .r = std.fmt.parseUnsigned(u8, str[1..3], 16) catch return null,
+                            .g = std.fmt.parseUnsigned(u8, str[3..5], 16) catch return null,
+                            .b = std.fmt.parseUnsigned(u8, str[5..7], 16) catch return null,
+                        },
+                    };
+                }
+
                 return null;
             }
 
