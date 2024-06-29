@@ -48,14 +48,38 @@ pub fn getColors(colors: []hevi.PaletteColor, data: []const u8) void {
 
     const dos_header = reader.readStruct(DosHeader) catch return;
     setRange(colors, 0, @sizeOf(DosHeader), .c1);
+    setRange(colors, @offsetOf(DosHeader, "magic"), @sizeOf(u16), .c1_accent);
+    setRange(colors, @offsetOf(DosHeader, "lfanew"), @sizeOf(u32), .c1_accent);
 
     fbs.pos = dos_header.lfanew;
 
-    setRange(colors, fbs.pos, @sizeOf(PeHeader), .c2_alt);
+    setRange(colors, fbs.pos, @sizeOf(PeHeader), .c2_accent);
     setRange(colors, fbs.pos + @offsetOf(PeHeader, "file_header"), @sizeOf(std.coff.CoffHeader), .c2);
 
     const pe_header = reader.readStruct(PeHeader) catch return;
-    _ = pe_header;
 
-    setRange(colors, 0, 64, .c1);
+    reader.skipBytes(pe_header.file_header.size_of_optional_header, .{}) catch return;
+
+    setRange(
+        colors,
+        fbs.pos - pe_header.file_header.size_of_optional_header,
+        pe_header.file_header.size_of_optional_header,
+        .c3,
+    );
+
+    if (pe_header.file_header.size_of_optional_header > 216) {
+        setRange(
+            colors,
+            fbs.pos - pe_header.file_header.size_of_optional_header + 216,
+            pe_header.file_header.size_of_optional_header - 216,
+            .c3_alt,
+        );
+    }
+
+    for (0..pe_header.file_header.number_of_sections) |i| {
+        const section_header = reader.readStruct(std.coff.SectionHeader) catch return;
+        setRange(colors, fbs.pos - @sizeOf(std.coff.SectionHeader), @sizeOf(std.coff.SectionHeader), if (i % 2 == 0) .c4 else .c5);
+        setRange(colors, fbs.pos - @sizeOf(std.coff.SectionHeader), 8, if (i % 2 == 0) .c4_accent else .c5_accent);
+        _ = section_header;
+    }
 }
