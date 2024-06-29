@@ -1,6 +1,10 @@
 const std = @import("std");
 const hevi = @import("../hevi.zig");
 
+pub const meta = hevi.Parser.Meta{
+    .description = "Binary or ASCII data",
+};
+
 pub fn matches(_: []const u8) bool {
     return true;
 }

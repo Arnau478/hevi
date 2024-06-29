@@ -1,6 +1,10 @@
 const std = @import("std");
 const hevi = @import("../hevi.zig");
 
+pub const meta = hevi.Parser.Meta{
+    .description = "32-bit and 64-bit ELF files",
+};
+
 pub fn matches(data: []const u8) bool {
     return std.mem.startsWith(u8, data, std.elf.MAGIC);
 }

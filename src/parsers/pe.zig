@@ -1,6 +1,10 @@
 const std = @import("std");
 const hevi = @import("../hevi.zig");
 
+pub const meta = hevi.Parser.Meta{
+    .description = "PE (portable executable) files",
+};
+
 const DosHeader = packed struct(u512) {
     magic: u16,
     cblp: u16,

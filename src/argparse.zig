@@ -60,7 +60,7 @@ fn printHelp() noreturn {
         for (0..9) |_| {
             std.debug.print("    ", .{});
         }
-        std.debug.print("- {s}\n", .{@tagName(parser)});
+        std.debug.print("- {s: <6} {s}\n", .{ @tagName(parser), parser.meta().description });
     }
 
     std.debug.print(

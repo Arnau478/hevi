@@ -140,11 +140,21 @@ pub const Parser = enum {
     pe,
     data,
 
+    pub const Meta = struct {
+        description: []const u8,
+    };
+
     fn Namespace(self: Parser) type {
         return switch (self) {
             .elf => @import("parsers/elf.zig"),
             .pe => @import("parsers/pe.zig"),
             .data => @import("parsers/data.zig"),
+        };
+    }
+
+    pub fn meta(self: Parser) Meta {
+        return switch (self) {
+            inline else => |p| p.Namespace().meta,
         };
     }
 
