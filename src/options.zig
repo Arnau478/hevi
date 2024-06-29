@@ -39,16 +39,22 @@ const Config = struct {
     const Palette = struct {
         normal: Color,
         normal_alt: Color,
+        normal_accent: Color,
         c1: Color,
         c1_alt: Color,
+        c1_accent: Color,
         c2: Color,
         c2_alt: Color,
+        c2_accent: Color,
         c3: Color,
         c3_alt: Color,
+        c3_accent: Color,
         c4: Color,
         c4_alt: Color,
+        c4_accent: Color,
         c5: Color,
         c5_alt: Color,
+        c5_accent: Color,
 
         const Color = struct {
             col: hevi.TextColor,
@@ -151,16 +157,22 @@ const Config = struct {
             return .{
                 .normal = self.normal.toHevi(),
                 .normal_alt = self.normal_alt.toHevi(),
+                .normal_accent = self.normal_accent.toHevi(),
                 .c1 = self.c1.toHevi(),
                 .c1_alt = self.c1_alt.toHevi(),
+                .c1_accent = self.c1_accent.toHevi(),
                 .c2 = self.c2.toHevi(),
                 .c2_alt = self.c2_alt.toHevi(),
+                .c2_accent = self.c2_accent.toHevi(),
                 .c3 = self.c3.toHevi(),
                 .c3_alt = self.c3_alt.toHevi(),
+                .c3_accent = self.c3_accent.toHevi(),
                 .c4 = self.c4.toHevi(),
                 .c4_alt = self.c4_alt.toHevi(),
+                .c4_accent = self.c4_accent.toHevi(),
                 .c5 = self.c5.toHevi(),
                 .c5_alt = self.c5_alt.toHevi(),
+                .c5_accent = self.c5_accent.toHevi(),
             };
         }
     };

@@ -4,7 +4,7 @@ const hevi = @import("hevi");
 const main = @import("main.zig");
 
 pub const ParseResult = struct {
-    filename: []const u8,
+    filename: ?[]const u8,
     color: ?bool,
     uppercase: ?bool,
     show_size: ?bool,
@@ -12,6 +12,7 @@ pub const ParseResult = struct {
     show_ascii: ?bool,
     skip_lines: ?bool,
     raw: ?bool,
+    show_palette: ?bool,
     parser: ?hevi.Parser,
 };
 
@@ -51,6 +52,7 @@ fn printHelp() noreturn {
         \\  --ascii, --no-ascii             Enable or disable the ASCII output
         \\  --skip-lines, --no-skip-lines   Enable or disable skipping of identical lines
         \\  --raw                           Output in raw format (disables most features)
+        \\  --show-palette                  Print the color palette being used
         \\  --parser                        Specify the parser to use. Available parsers:
         \\
     , .{});
@@ -117,6 +119,7 @@ pub fn parse(args: []const []const u8) ParseResult {
     var show_ascii: ?bool = null;
     var skip_lines: ?bool = null;
     var raw: ?bool = null;
+    var show_palette: ?bool = null;
     var parser: ?[]const u8 = null;
 
     var take_string: bool = false;
@@ -155,6 +158,7 @@ pub fn parse(args: []const []const u8) ParseResult {
                         .{ .toggle = .{ .boolean = &show_ascii, .enable = "ascii", .disable = "no-ascii" } },
                         .{ .toggle = .{ .boolean = &skip_lines, .enable = "skip-lines", .disable = "no-skip-lines" } },
                         .{ .toggle = .{ .boolean = &raw, .enable = "raw", .disable = null } },
+                        .{ .toggle = .{ .boolean = &show_palette, .enable = "show-palette", .disable = null } },
                         .{ .string = .{ .flag = "parser", .val = &parser } },
                     };
 
@@ -213,7 +217,7 @@ pub fn parse(args: []const []const u8) ParseResult {
     }
 
     return .{
-        .filename = filename orelse main.fail("no file specified", .{}),
+        .filename = filename,
         .color = color,
         .uppercase = uppercase,
         .show_size = show_size,
@@ -221,6 +225,7 @@ pub fn parse(args: []const []const u8) ParseResult {
         .show_ascii = show_ascii,
         .skip_lines = skip_lines,
         .raw = raw,
+        .show_palette = show_palette,
         .parser = if (parser) |p|
             std.meta.stringToEnum(hevi.Parser, p) orelse main.fail("no parser named {s}", .{p})
         else
@@ -240,6 +245,7 @@ test "only filename" {
         .show_ascii = null,
         .skip_lines = null,
         .raw = null,
+        .show_palette = null,
         .parser = null,
     });
 }
@@ -257,6 +263,7 @@ test "toggle flag" {
         .show_ascii = null,
         .skip_lines = null,
         .raw = null,
+        .show_palette = null,
         .parser = null,
     });
 
@@ -272,6 +279,7 @@ test "toggle flag" {
         .show_ascii = null,
         .skip_lines = null,
         .raw = null,
+        .show_palette = null,
         .parser = null,
     });
 
@@ -292,6 +300,7 @@ test "toggle flag" {
         .show_ascii = true,
         .skip_lines = false,
         .raw = null,
+        .show_palette = null,
         .parser = null,
     });
 }
@@ -310,6 +319,7 @@ test "string arg" {
         .show_ascii = null,
         .skip_lines = null,
         .raw = null,
+        .show_palette = null,
         .parser = .data,
     });
 
@@ -328,6 +338,7 @@ test "string arg" {
         .show_ascii = null,
         .skip_lines = null,
         .raw = null,
+        .show_palette = null,
         .parser = .data,
     });
 }

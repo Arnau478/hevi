@@ -28,6 +28,7 @@ The command should be used as `hevi <file> [flags]`. The flags are described [be
 | `--ascii`/`--no-ascii`           | Enable or disable ASCII interpretation                  |
 | `--skip-lines`/`--no-skip-lines` | Enable or disable skipping of identical lines           |
 | `--raw`                          | Raw format (disables most features)                     |
+| `--show-palette`                 | Show the current color palette in a table               |
 | `--parser`                       | Specify the parser to use. For a list use `hevi --help` |
 
 ### Environment variables

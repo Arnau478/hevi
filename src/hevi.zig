@@ -8,6 +8,7 @@ pub const TextColor = struct {
     foreground: ?BaseColor = null,
     background: ?BaseColor = null,
     dim: bool = false,
+    bold: bool = false,
 
     pub const BaseColor = union(enum) {
         standard: Standard,
@@ -39,7 +40,7 @@ pub const TextColor = struct {
         };
     };
 
-    fn ansiCode(self: TextColor, writer: std.io.AnyWriter) !void {
+    pub fn ansiCode(self: TextColor, writer: std.io.AnyWriter) !void {
         if (self.foreground) |foreground| {
             switch (foreground) {
                 .standard => |standard| _ = try writer.write(switch (standard) {
@@ -97,6 +98,7 @@ pub const TextColor = struct {
         }
 
         if (self.dim) _ = try writer.write("\x1b[2m");
+        if (self.bold) _ = try writer.write("\x1b[1m");
     }
 };
 
@@ -104,16 +106,22 @@ pub const TextColor = struct {
 pub const PaletteColor = enum {
     normal,
     normal_alt,
+    normal_accent,
     c1,
     c1_alt,
+    c1_accent,
     c2,
     c2_alt,
+    c2_accent,
     c3,
     c3_alt,
+    c3_accent,
     c4,
     c4_alt,
+    c4_accent,
     c5,
     c5_alt,
+    c5_accent,
 };
 
 /// A color palette, that associates `PaletteColor`s to `TextColor`s
@@ -123,16 +131,22 @@ pub const ColorPalette = std.enums.EnumFieldStruct(PaletteColor, TextColor, null
 pub const default_palette: ColorPalette = .{
     .normal = .{ .foreground = .{ .standard = .yellow } },
     .normal_alt = .{ .foreground = .{ .standard = .yellow }, .dim = true },
+    .normal_accent = .{ .foreground = .{ .standard = .bright_yellow }, .bold = true },
     .c1 = .{ .foreground = .{ .standard = .red } },
     .c1_alt = .{ .foreground = .{ .standard = .red }, .dim = true },
+    .c1_accent = .{ .foreground = .{ .standard = .bright_red }, .bold = true },
     .c2 = .{ .foreground = .{ .standard = .green } },
     .c2_alt = .{ .foreground = .{ .standard = .green }, .dim = true },
+    .c2_accent = .{ .foreground = .{ .standard = .bright_green }, .bold = true },
     .c3 = .{ .foreground = .{ .standard = .blue } },
     .c3_alt = .{ .foreground = .{ .standard = .blue }, .dim = true },
+    .c3_accent = .{ .foreground = .{ .standard = .bright_blue }, .bold = true },
     .c4 = .{ .foreground = .{ .standard = .magenta } },
     .c4_alt = .{ .foreground = .{ .standard = .magenta }, .dim = true },
+    .c4_accent = .{ .foreground = .{ .standard = .bright_magenta }, .bold = true },
     .c5 = .{ .foreground = .{ .standard = .cyan } },
     .c5_alt = .{ .foreground = .{ .standard = .cyan }, .dim = true },
+    .c5_accent = .{ .foreground = .{ .standard = .bright_cyan }, .bold = true },
 };
 
 pub const Parser = enum {
