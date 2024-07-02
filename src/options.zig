@@ -33,7 +33,6 @@ const Config = struct {
     show_ascii: ?bool = null,
     skip_lines: ?bool = null,
     raw: ?bool = null,
-    parser: ?hevi.Parser = null,
     palette: ?Palette = null,
 
     const Palette = struct {
@@ -226,7 +225,6 @@ pub fn getOptions(allocator: std.mem.Allocator, args: argparse.ParseResult, stdo
         if (config.show_ascii) |show_ascii| options.show_ascii = show_ascii;
         if (config.skip_lines) |skip_lines| options.skip_lines = skip_lines;
         if (config.raw) |raw| options.raw = raw;
-        if (config.parser) |parser| options.parser = parser;
         if (config.palette) |palette| options.palette = palette.toHevi();
     }
 
