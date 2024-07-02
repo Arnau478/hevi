@@ -41,7 +41,7 @@ pub fn fail(comptime fmt: []const u8, args: anytype) noreturn {
     std.process.exit(1);
 }
 
-fn printPalette(opts: hevi.DisplayOptions, writer: std.io.AnyWriter) !void {
+fn printPalette(opts: hevi.DisplayOptions, writer: anytype) !void {
     try writer.print("                  (alt)    (accent)\n", .{});
     try writer.print("(main)   ", .{});
     try opts.palette.normal.ansiCode(writer);
@@ -82,7 +82,7 @@ pub fn main() void {
     };
 
     if (parsed_args.show_palette != null and parsed_args.show_palette.?) {
-        printPalette(opts, stdout.writer().any()) catch |err| switch (err) {
+        printPalette(opts, stdout.writer()) catch |err| switch (err) {
             else => fail("{s}", .{@errorName(err)}),
         };
     } else {
@@ -102,9 +102,11 @@ pub fn main() void {
 
             defer allocator.free(data);
 
-            hevi.dump(allocator, data, stdout.writer().any(), opts) catch |err| switch (err) {
+            hevi.dump(allocator, data, stdout.writer(), opts) catch |err| switch (err) {
                 error.NonMatchingParser => fail("{s} does not match parser {s}", .{ filename, @tagName(opts.parser.?) }),
-                else => fail("{s}", .{@errorName(err)}),
+                error.OutOfMemory => fail("Out of memory", .{}),
+                error.BrokenPipe => fail("Broken pipe", .{}),
+                else => fail("Error writing to stdout: {s}", .{@errorName(err)}),
             };
         } else {
             var no_args = true;
