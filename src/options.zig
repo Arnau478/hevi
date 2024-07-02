@@ -95,10 +95,13 @@ const Config = struct {
                 if (iter.next() != null) return null;
 
                 var dim = false;
+                var bold = false;
 
                 if (maybe_mod) |mod| {
                     if (std.mem.eql(u8, mod, "dim")) {
                         dim = true;
+                    } else if (std.mem.eql(u8, mod, "bold")) {
+                        bold = true;
                     } else {
                         return null;
                     }
@@ -109,6 +112,7 @@ const Config = struct {
                         .foreground = parseBase(fg) orelse return null,
                         .background = if (maybe_bg) |bg| parseBase(bg) orelse return null else null,
                         .dim = dim,
+                        .bold = bold,
                     },
                 };
             }
