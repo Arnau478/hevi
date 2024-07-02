@@ -202,30 +202,32 @@ pub fn getOptions(allocator: std.mem.Allocator, args: argparse.ParseResult, stdo
         const source = try tuple[0].readToEndAllocOptions(allocator, std.math.maxInt(usize), null, 1, 0);
         defer allocator.free(source);
 
-        var arena = std.heap.ArenaAllocator.init(allocator);
-        defer arena.deinit();
+        if (source.len != 0) {
+            var arena = std.heap.ArenaAllocator.init(allocator);
+            defer arena.deinit();
 
-        var diag = ziggy.Diagnostic{ .path = tuple[1] };
-        defer diag.deinit(arena.allocator());
+            var diag = ziggy.Diagnostic{ .path = tuple[1] };
+            defer diag.deinit(arena.allocator());
 
-        const config = ziggy.parseLeaky(Config, arena.allocator(), source, .{
-            .diagnostic = &diag,
-        }) catch |err| switch (err) {
-            error.OutOfMemory, error.Overflow => return error.OutOfMemory,
-            error.Syntax => {
-                std.log.err("{}", .{diag});
-                return error.InvalidConfig;
-            },
-        };
+            const config = ziggy.parseLeaky(Config, arena.allocator(), source, .{
+                .diagnostic = &diag,
+            }) catch |err| switch (err) {
+                error.OutOfMemory, error.Overflow => return error.OutOfMemory,
+                error.Syntax => {
+                    std.log.err("{}", .{diag});
+                    return error.InvalidConfig;
+                },
+            };
 
-        if (config.color) |color| options.color = color;
-        if (config.uppercase) |uppercase| options.uppercase = uppercase;
-        if (config.show_size) |show_size| options.show_size = show_size;
-        if (config.show_offset) |show_offset| options.show_offset = show_offset;
-        if (config.show_ascii) |show_ascii| options.show_ascii = show_ascii;
-        if (config.skip_lines) |skip_lines| options.skip_lines = skip_lines;
-        if (config.raw) |raw| options.raw = raw;
-        if (config.palette) |palette| options.palette = palette.toHevi();
+            if (config.color) |color| options.color = color;
+            if (config.uppercase) |uppercase| options.uppercase = uppercase;
+            if (config.show_size) |show_size| options.show_size = show_size;
+            if (config.show_offset) |show_offset| options.show_offset = show_offset;
+            if (config.show_ascii) |show_ascii| options.show_ascii = show_ascii;
+            if (config.skip_lines) |skip_lines| options.skip_lines = skip_lines;
+            if (config.raw) |raw| options.raw = raw;
+            if (config.palette) |palette| options.palette = palette.toHevi();
+        }
     }
 
     // Environment variables
