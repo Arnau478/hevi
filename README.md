@@ -35,42 +35,60 @@ The command should be used as `hevi <file> [flags]`. The flags are described [be
 The `NO_COLOR` variable is supported, and disables color (see <https://no-color.org/>) printing. Note that it can be overwritten by an explicit `--color`.
 
 ### Config file
-You can create a config file and specify the default values for the flags. It follows the `.json` syntax. Example:
-```json
-{
-    "color": true,
-    "uppercase": true,
-    "show_size": false,
-    "show_offset": true,
-    "show_ascii": false,
-    "skip_lines": true,
-    "parser": "data",
-    "palette": {
-        "normal": { "base": "yellow", "dim": false },
-        "normal_alt": { "base": "yellow", "dim": true },
-        "c1": { "base": "red", "dim": false },
-        "c1_alt": { "base": "red", "dim": true },
-        "c2": { "base": "green", "dim": false },
-        "c2_alt": { "base": "green", "dim": true },
-        "c3": { "base": "blue", "dim": false },
-        "c3_alt": { "base": "blue", "dim": true },
-        "c4": { "base": "magenta", "dim": false },
-        "c4_alt": { "base": "magenta", "dim": true },
-        "c5": { "base": "cyan", "dim": false },
-        "c5_alt": { "base": "cyan", "dim": true }
-    }
-}
+The config file is a [ziggy](ziggy-lang.io) file. The following fields are
+available:
+```zig
+color: bool,
+uppercase: bool,
+show_size: bool,
+show_offset: bool,
+show_ascii: bool,
+skip_lines: bool,
+raw: bool,
+palette: Palette,
 ```
-**Note**: for the `palette` field you must specify all palettes!
+
+All fields are optional.
+
+**Note**: for the `palette` field you must specify all styles!
+
+#### Example config
+```zig
+.color = true,
+.skip_lines = false,
+.palette = Palette{
+    .normal = @color("yellow"),
+    .normal_alt = @color("yellow::dim"),
+    .normal_accent = @color("yellow:bright_black:bold"),
+    .c1 = @color("red"),
+    .c1_alt = @color("red::dim"),
+    .c1_accent = @color("red:bright_black:bold"),
+    .c2 = @color("green"),
+    .c2_alt = @color("green::dim"),
+    .c2_accent = @color("green:bright_black:bold"),
+    .c3 = @color("blue"),
+    .c3_alt = @color("blue::dim"),
+    .c3_accent = @color("blue:bright_black:bold"),
+    .c4 = @color("cyan"),
+    .c4_alt = @color("cyan::dim"),
+    .c4_accent = @color("cyan:bright_black:bold"),
+    .c5 = @color("magenta"),
+    .c5_alt = @color("magenta::dim"),
+    .c5_accent = @color("magenta:bright_black:bold"),
+},
+```
+
+#### Location
 
 The config file is located at:
 | OS                                     | Path                                                                                             |
 | -------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Linux, MacOS, FreeBSD, OpenBSD, NetBSD | `$XDG_CONFIG_HOME/hevi/config.json` or if the env doesn't exist `$HOME/.config/hevi/config.json` |
-| Windows                                | `%APPDATA%/hevi/config.json`                                                                     |
+| Linux, MacOS, FreeBSD, OpenBSD, NetBSD | `$XDG_CONFIG_HOME/hevi/config.ziggy` or if the env doesn't exist `$HOME/.config/hevi/config.ziggy` |
+| Windows                                | `%APPDATA%/hevi/config.ziggy`                                                                     |
 | Other                                  | Not supported. No config file will be read                                                       |
 
-**Note**: hevi has a precedence for configuration and is:
+#### Precedence
+Hevi has a precedence for configuration and it is:
 1. Flags
 2. Environment variables
 3. Config file

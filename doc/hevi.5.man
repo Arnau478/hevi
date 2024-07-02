@@ -3,12 +3,12 @@
 hevi configuration file
 
 .SH SYNOPSIS
-.I ~/.config/hevi/config.json
+.I ~/.config/hevi/config.ziggy
 
 .SH DESCRIPTION
 This page explains how the configuration file is structured and what its fields are. 
 
-The configuration file is a JSON file.
+The configuration file is a ziggy file.
 
 These are the fields of the configuration file:
 .in +4
@@ -20,45 +20,71 @@ show_offset: \fItrue\fR|\fIfalse\fR
 show_ascii: \fItrue\fR|\fIfalse\fR
 skip_lines: \fItrue\fR|\fIfalse\fR
 raw: \fItrue\fR|\fIfalse\fR
-parser: "\fIspecific parser\fR"
-palette: {\fIpalettes\fR}
+palette: Palette{\fIpalettes\fR}
 .fi
 .in
 
-\fBNote\fR: for the \fIpalette\fR field you must specify all palettes!
+The palette is a series of mappings from style names to colors. The styles are:
+.in +4
+.nf
+normal
+normal_alt
+normal_accent
+c1
+c1_alt
+c1_accent
+c2
+c2_alt
+c2_accent
+c3
+c3_alt
+c3_accent
+c4
+c4_alt
+c4_accent
+c5
+c5_alt
+c5_accent
+.fi
+.in
 
-You can also not put all the fields in the file, default values will be chosen.
+A color is specified either as \fB@color("foreground")\fR or \fB@color("foreground:background")\fR. Attributes (either \fBdim\fR or \fBbold\fR) can be added like \fB@color("foreground::attr")\fR or \fB@color("foreground:background:attr")\fR.
+
+\fBNote\fR: for the \fIpalette\fR field you must specify all styles!
 
 The config file is located at:
 .in +4
 .nf
-\fBLinux\fR, \fBMacOS\fR, \fBFreeBSD\fR, \fBOpenBSD\fR, \fBNetBSD\fR --> \fI$XDG_CONFIG_HOME/hevi/config.json\fR or if the env doesn't exist \fI$HOME/.config/hevi/config.json\fR
-\fBWindows\fR --> \fI%APPDATA%/hevi/config.json\fR
+\fBLinux\fR, \fBMacOS\fR, \fBFreeBSD\fR, \fBOpenBSD\fR, \fBNetBSD\fR --> \fI$XDG_CONFIG_HOME/hevi/config.ziggy\fR or if the env doesn't exist \fI$HOME/.config/hevi/config.ziggy\fR
+\fBWindows\fR --> \fI%APPDATA%/hevi/config.ziggy\fR
 \fBOther\fR --> Not supported. No config file will be read.
 .in
 
 .SH EXAMPLES
 .in +4
 .EX
-{
-	"color": true,
-	"skip_lines": false,
-	"parser": "data",
-	"palette": {
-		"normal": { "base": "yellow", "dim": false },
-		"normal_alt": { "base": "yellow", "dim": true },
-		"c1": { "base": "red", "dim": false },
-		"c1_alt": { "base": "red", "dim": true },
-		"c2": { "base": "green", "dim": false },
-		"c2_alt": { "base": "green", "dim": true },
-		"c3": { "base": "blue", "dim": false },
-		"c3_alt": { "base": "blue", "dim": true },
-		"c4": { "base": "magenta", "dim": false },
-		"c4_alt": { "base": "magenta", "dim": true },
-		"c5": { "base": "cyan", "dim": false },
-		"c5_alt": { "base": "cyan", "dim": true }
-	}
-}
+.color = true,
+.skip_lines = false,
+.palette = Palette{
+    .normal = @color("yellow"),
+    .normal_alt = @color("yellow::dim"),
+    .normal_accent = @color("yellow:bright_black:bold"),
+    .c1 = @color("red"),
+    .c1_alt = @color("red::dim"),
+    .c1_accent = @color("red:bright_black:bold"),
+    .c2 = @color("green"),
+    .c2_alt = @color("green::dim"),
+    .c2_accent = @color("green:bright_black:bold"),
+    .c3 = @color("blue"),
+    .c3_alt = @color("blue::dim"),
+    .c3_accent = @color("blue:bright_black:bold"),
+    .c4 = @color("cyan"),
+    .c4_alt = @color("cyan::dim"),
+    .c4_accent = @color("cyan:bright_black:bold"),
+    .c5 = @color("magenta"),
+    .c5_alt = @color("magenta::dim"),
+    .c5_accent = @color("magenta:bright_black:bold"),
+},
 .EE
 .in
 
