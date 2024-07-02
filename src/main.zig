@@ -94,7 +94,12 @@ pub fn main() void {
             };
             defer file.close();
 
-            const data = file.readToEndAlloc(allocator, std.math.maxInt(usize)) catch fail("Out of memory", .{});
+            const data = file.readToEndAlloc(allocator, std.math.maxInt(usize)) catch |err| switch (err) {
+                error.OutOfMemory => fail("Out of memory", .{}),
+                error.IsDir => fail("{s} is a directory", .{filename}),
+                else => fail("Cannot read {s}", .{filename}),
+            };
+
             defer allocator.free(data);
 
             hevi.dump(allocator, data, stdout.writer().any(), opts) catch |err| switch (err) {
