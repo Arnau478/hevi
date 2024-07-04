@@ -80,6 +80,6 @@ pub fn getColors(colors: []hevi.PaletteColor, data: []const u8) void {
         const section_header = reader.readStruct(std.coff.SectionHeader) catch return;
         setRange(colors, fbs.pos - @sizeOf(std.coff.SectionHeader), @sizeOf(std.coff.SectionHeader), if (i % 2 == 0) .c4 else .c5);
         setRange(colors, fbs.pos - @sizeOf(std.coff.SectionHeader), 8, if (i % 2 == 0) .c4_accent else .c5_accent);
-        _ = section_header;
+        setRange(colors, section_header.pointer_to_raw_data, section_header.size_of_raw_data, if (i % 2 == 0) .c4_alt else .c5_alt);
     }
 }
