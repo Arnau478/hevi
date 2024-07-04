@@ -35,8 +35,7 @@ The command should be used as `hevi <file> [flags]`. The flags are described [be
 The `NO_COLOR` variable is supported, and disables color (see <https://no-color.org/>) printing. Note that it can be overwritten by an explicit `--color`.
 
 ### Config file
-The config file is a [ziggy](ziggy-lang.io) file. The following fields are
-available:
+The config file is a [ziggy](https://ziggy-lang.io) file. The following fields are available:
 ```zig
 color: bool,
 uppercase: bool,
