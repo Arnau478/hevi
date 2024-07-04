@@ -129,7 +129,7 @@ pub fn build(b: *std.Build) !void {
     const release_step = b.step("release", "Create release builds for all targets");
     for (release_targets) |rt| {
         const rexe = addExe(b, b.resolveTargetQuery(rt), .ReleaseSmall, true, build_options, mod);
-        release_step.dependOn(&b.addInstallArtifact(rexe, .{ .dest_sub_path = try std.fs.path.join(b.allocator, &.{ "release", rexe.name }) }).step);
+        release_step.dependOn(&b.addInstallArtifact(rexe, .{ .dest_sub_path = try std.fs.path.join(b.allocator, &.{ "release", rexe.out_filename }) }).step);
     }
 
     const run_cmd = b.addRunArtifact(exe);
