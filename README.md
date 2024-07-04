@@ -8,10 +8,15 @@
 ![example image](web/example.png)
 
 ## What is hevi?
-Hevi is a hex viewer, just like `xxd` or `hexdump`.
+Hevi (pronounced like "heavy") is a hex viewer, just like `xxd` or `hexdump`.
 
-## But it's missing X...
-Hevi is under development. But if you think it's missing any feature, please open an issue. I will address it as soon as possible.
+## Features
+### Parsers
+Hevi can parse things like ELF or PE files and give you syntax-highlighting.
+![parser example](web/parser.png)
+
+### Custom color palettes
+You can specify custom color palettes. Color palettes can use standard ANSI colors or truecolor.
 
 ## Usage
 The command should be used as `hevi <file> [flags]`. The flags are described [below](#flags).
