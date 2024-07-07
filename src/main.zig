@@ -86,13 +86,19 @@ pub fn main() void {
             else => fail("{s}", .{@errorName(err)}),
         };
     } else {
-        if (parsed_args.filename) |filename| {
-            const file = std.fs.cwd().openFile(filename, .{}) catch |err| switch (err) {
-                error.FileNotFound => fail("{s} not found", .{filename}),
-                error.IsDir => fail("{s} is a directory", .{filename}),
-                else => fail("{s} could not be opened", .{filename}),
-            };
-            defer file.close();
+        if (parsed_args.filename) |true_filename| {
+            const is_stdin = std.mem.eql(u8, true_filename, "-");
+            const filename = if (is_stdin) "<stdin>" else true_filename;
+
+            const file = if (is_stdin)
+                std.io.getStdIn()
+            else
+                std.fs.cwd().openFile(filename, .{}) catch |err| switch (err) {
+                    error.FileNotFound => fail("{s} not found", .{filename}),
+                    error.IsDir => fail("{s} is a directory", .{filename}),
+                    else => fail("{s} could not be opened", .{filename}),
+                };
+            defer if (!is_stdin) file.close();
 
             const data = file.readToEndAlloc(allocator, std.math.maxInt(usize)) catch |err| switch (err) {
                 error.OutOfMemory => fail("Out of memory", .{}),

@@ -133,7 +133,7 @@ pub fn parse(args: []const []const u8) ParseResult {
             continue;
         }
 
-        if (arg[0] == '-') {
+        if (arg[0] == '-' and arg.len > 1) {
             if (arg.len <= 1) {
                 main.fail("expected flag", .{});
             }
