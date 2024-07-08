@@ -152,6 +152,7 @@ pub const default_palette: ColorPalette = .{
 pub const Parser = enum {
     elf,
     pe,
+    qoi,
     data,
 
     pub const Meta = struct {
@@ -162,6 +163,7 @@ pub const Parser = enum {
         return switch (self) {
             .elf => @import("parsers/elf.zig"),
             .pe => @import("parsers/pe.zig"),
+            .qoi => @import("parsers/qoi.zig"),
             .data => @import("parsers/data.zig"),
         };
     }
