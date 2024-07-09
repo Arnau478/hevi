@@ -103,7 +103,7 @@ It is written in [zig](https://github.com/ziglang/zig), in an attempt to simplif
 
 ## Installation
 ### AUR
-If you're using Arch Linux, you can install it from the AUR (`hevi-bin`).
+If you're using Arch Linux, you can install it from the AUR (`hevi`).
 ### Other platforms
 You can download a binary from the [releases](https://github.com/Arnau478/hevi/releases/) page. You can also clone the repository and compile it with `zig build` (using a `zig` master build).
 
