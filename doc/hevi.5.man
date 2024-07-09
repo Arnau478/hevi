@@ -1,9 +1,9 @@
-.TH HEVI 5 2024-05-12 "hevi 1.0.0-dev"
+.TH HEVI 5 2024-07-09 "hevi 1.1.0-dev"
 .SH NAME
 hevi configuration file
 
 .SH SYNOPSIS
-.I ~/.config/hevi/config.ziggy
+.I \[ti]/.config/hevi/config.ziggy
 
 .SH DESCRIPTION
 This page explains how the configuration file is structured and what its fields are. 
@@ -63,9 +63,9 @@ The config file is located at:
 .SH EXAMPLES
 .in +4
 .EX
-.color = true,
-.skip_lines = false,
-.palette = Palette{
+\[char46]color = true,
+\[char46]skip_lines = false,
+\[char46]palette = Palette{
     .normal = @color("yellow"),
     .normal_alt = @color("yellow::dim"),
     .normal_accent = @color("yellow:bright_black:bold"),

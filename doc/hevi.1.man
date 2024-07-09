@@ -1,4 +1,4 @@
-.TH HEVI 1 2024-05-12 "hevi 1.0.0-dev"
+.TH HEVI 1 2024-07-09 "hevi 1.1.0-dev"
 .SH NAME
 hevi \- a hex viewer
 
@@ -38,7 +38,7 @@ enable or disable skipping of identical lines
 raw format (disables most features)
 
 .TP
-\fB\-\-show-palette\fR
+\fB\-\-show\-palette\fR
 Show the current color palette in a table
 
 .TP
