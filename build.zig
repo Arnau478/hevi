@@ -68,7 +68,7 @@ fn getVersion(b: *std.Build) SemanticVersion {
     }
 }
 
-fn addExe(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode, pie: bool, release: bool, build_options: *std.Build.Step.Options, hevi_mod: *std.Build.Module) *std.Build.Step.Compile {
+fn addExe(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode, release: bool, build_options: *std.Build.Step.Options, hevi_mod: *std.Build.Module) *std.Build.Step.Compile {
     const exe = b.addExecutable(.{
         .name = if (release) b.fmt("hevi-{s}-{s}", .{ @tagName(target.result.cpu.arch), @tagName(target.result.os.tag) }) else "hevi",
         .root_source_file = b.path("src/main.zig"),
@@ -76,7 +76,6 @@ fn addExe(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin
         .optimize = optimize,
     });
 
-    exe.pie = pie;
     exe.root_module.addImport("hevi", hevi_mod);
     exe.root_module.addOptions("build_options", build_options);
     exe.root_module.addImport("ziggy", b.dependency("ziggy", .{}).module("ziggy"));
@@ -89,8 +88,6 @@ pub fn build(b: *std.Build) !void {
 
     const optimize = b.standardOptimizeOption(.{});
 
-    const pie = b.option(bool, "pie", "Build a Position Independent Executable") orelse false;
-
     var build_options = b.addOptions();
     build_options.addOption(SemanticVersion, "version", getVersion(b));
 
@@ -98,7 +95,7 @@ pub fn build(b: *std.Build) !void {
         .root_source_file = b.path("src/hevi.zig"),
     });
 
-    const exe = addExe(b, target, optimize, pie, false, build_options, mod);
+    const exe = addExe(b, target, optimize, false, build_options, mod);
     b.installArtifact(exe);
 
     const docs_step = b.step("docs", "Build the documentation");
@@ -131,7 +128,7 @@ pub fn build(b: *std.Build) !void {
 
     const release_step = b.step("release", "Create release builds for all targets");
     for (release_targets) |rt| {
-        const rexe = addExe(b, b.resolveTargetQuery(rt), .ReleaseSmall, false, true, build_options, mod);
+        const rexe = addExe(b, b.resolveTargetQuery(rt), .ReleaseSmall, true, build_options, mod);
         release_step.dependOn(&b.addInstallArtifact(rexe, .{ .dest_sub_path = try std.fs.path.join(b.allocator, &.{ "release", rexe.out_filename }) }).step);
     }
 
