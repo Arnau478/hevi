@@ -187,7 +187,7 @@ pub fn getOptions(allocator: std.mem.Allocator, args: argparse.ParseResult, stdo
 
     // Default values
     var options = hevi.DisplayOptions{
-        .color = stdout.supportsAnsiEscapeCodes(),
+        .color = stdout.getOrEnableAnsiEscapeSupport(),
         .uppercase = false,
         .show_size = true,
         .show_offset = true,
