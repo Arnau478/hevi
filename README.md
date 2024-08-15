@@ -102,8 +102,9 @@ Hevi has a precedence for configuration and it is:
 It is written in [zig](https://github.com/ziglang/zig), in an attempt to simplify hex viewers.
 
 ## Installation
-### AUR
-If you're using Arch Linux, you can install it from the AUR (`hevi`).
+### Some Linux package managers
+If your package manager is in the following list (and preferably in green), you can simply install it from there:
+[![Packaging status](https://repology.org/badge/vertical-allrepos/hevi.svg)](https://repology.org/project/hevi/versions)
 ### Other platforms
 You can download a binary from the [releases](https://github.com/Arnau478/hevi/releases/) page. You can also clone the repository and compile it with `zig build` (using a `zig` master build).
 
