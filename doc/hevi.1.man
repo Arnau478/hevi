@@ -1,4 +1,4 @@
-.TH HEVI 1 2024-07-09 "hevi 1.1.0-dev"
+.TH HEVI 1 2024-08-21 "hevi 2.0.0"
 .SH NAME
 hevi \- a hex viewer
 

@@ -1,6 +1,6 @@
 .{
     .name = "hevi",
-    .version = "1.1.0",
+    .version = "2.0.0",
     .dependencies = .{
         .ziggy = .{
             .url = "git+https://github.com/kristoff-it/ziggy#ae30921d8c98970942d3711553aa66ff907482fe",
