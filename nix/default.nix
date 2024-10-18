@@ -1,7 +1,7 @@
 {
   stdenvNoCC,
   zig,
-  callPackage,
+  fetchZigDeps,
   lib
 }: stdenvNoCC.mkDerivation {
   pname = "hevi";
@@ -15,8 +15,18 @@
   
   enablePararellBuilding = true;
 
-  postPatch = ''
-    ln -s ${callPackage ./deps.nix { }} $ZIG_GLOBAL_CACHE_DIR/p
+  postPatch = let 
+    deps = fetchZigDeps {
+      inherit zig;
+      stdenv = stdenvNoCC;
+
+      name = "hevi";
+      src = ../.;
+      depsHash = "sha256-B3ps6AfYdcbSNiVuhJQWrjHxknoKmYL8jdbBVr4lINY=";
+    };
+  in
+  ''
+    ln -s ${deps} $ZIG_GLOBAL_CACHE_DIR/p
   '';
 
   meta = with lib; {
