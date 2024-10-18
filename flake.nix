@@ -11,6 +11,10 @@
     let
       pkgs = nixpkgs.legacyPackages.${system};
     in {
+      packages = rec {
+        hevi = pkgs.callPackage ./nix/default.nix {};
+        default = hevi;
+      };
 
       devShells.default = pkgs.mkShellNoCC {
         packages = with pkgs; [ zig ];
