@@ -18,4 +18,12 @@
   postPatch = ''
     ln -s ${callPackage ./deps.nix { }} $ZIG_GLOBAL_CACHE_DIR/p
   '';
+
+  meta = with lib; {
+    description = "A modern hex viewer";
+
+    homePage = "https://arnau478.github.io/hevi/";
+    license = licenses.gpl3;
+    platforms = platforms.all;
+  };
 }
