@@ -106,7 +106,7 @@ It is written in [zig](https://github.com/ziglang/zig), in an attempt to simplif
 If your package manager is in the following list (and preferably in green), you can simply install it from there:
 [![Packaging status](https://repology.org/badge/vertical-allrepos/hevi.svg)](https://repology.org/project/hevi/versions)
 ### Other platforms
-You can download a binary from the [releases](https://github.com/Arnau478/hevi/releases/) page. You can also clone the repository and compile it with `zig build` (using a `zig` master build).
+You can download a binary from the [releases](https://github.com/Arnau478/hevi/releases/) page. You can also clone the repository and compile it with `zig build`.
 
 ## Contribute
 Contributions are welcome! Even if you don't want to write code, you can help a lot creating new issues or testing this software.
