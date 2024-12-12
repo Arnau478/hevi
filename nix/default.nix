@@ -2,7 +2,8 @@
   stdenvNoCC,
   zig,
   fetchZigDeps,
-  lib
+  lib,
+  commit_id,
 }: stdenvNoCC.mkDerivation {
   pname = "hevi";
   version = "2.0.0";
@@ -14,6 +15,8 @@
   nativeBuildInputs = [ zig.hook ];
   
   enablePararellBuilding = true;
+
+  zigBuildFlags = "-Dversion_commit_id=${commit_id} -Dversion_commit_num=0";
 
   postPatch = let 
     deps = fetchZigDeps {

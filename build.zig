@@ -40,7 +40,8 @@ fn getVersion(b: *std.Build) SemanticVersion {
         "--tags",
         "--abbrev=10",
     }, &code, .Ignore) catch {
-        version.pre = "dev";
+        version.pre = b.fmt("dev.{d}", .{b.option(usize, "version_commit_num", "The commit index since last release").?});
+        version.build = b.option([]const u8, "version_commit_id", "The commit ID").?;
         return version;
     }, "\n\r");
 

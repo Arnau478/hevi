@@ -7,12 +7,15 @@
     zig-deps-fod.url = "github:water-sucks/zig-deps-fod";
   };
 
-  outputs = { nixpkgs, flake-utils, zig-deps-fod, ... }: flake-utils.lib.eachDefaultSystem(system:
+  outputs = { self, nixpkgs, flake-utils, zig-deps-fod, ... }: flake-utils.lib.eachDefaultSystem(system:
     let
       pkgs = nixpkgs.legacyPackages.${system};
     in {
       packages = rec {
-        hevi = pkgs.callPackage ./nix/default.nix { inherit (zig-deps-fod.lib) fetchZigDeps; };
+        hevi = pkgs.callPackage ./nix/default.nix {
+          inherit (zig-deps-fod.lib) fetchZigDeps;
+          commit_id = self.shortRev or self.dirtyShortRev;
+        };
         default = hevi;
       };
 
