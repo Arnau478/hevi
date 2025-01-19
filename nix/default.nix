@@ -36,7 +36,7 @@
     description = "A modern hex viewer";
 
     homePage = "https://arnau478.github.io/hevi/";
-    license = licenses.gpl3;
+    license = licenses.gpl3Plus;
     platforms = platforms.all;
   };
 }

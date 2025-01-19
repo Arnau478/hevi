@@ -122,4 +122,6 @@ Contributions are welcome! Even if you don't want to write code, you can help a 
 ## License
 See [LICENSE](LICENSE)
 
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+SPDX-License-Identifier: GPL-3.0-or-later
+
+[![License: GPL-3.0-or-later](https://img.shields.io/badge/License-GPL--3.0--or--later-blue.svg)](https://spdx.org/licenses/GPL-3.0-or-later.html)
