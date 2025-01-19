@@ -15,6 +15,10 @@ const release_targets: []const std.Target.Query = &.{
 };
 
 fn getVersion(b: *std.Build) SemanticVersion {
+    if (b.option([]const u8, "force-version", "Force the version to a specific semver string")) |forced_ver| {
+        return SemanticVersion.parse(forced_ver) catch @panic("Unable to parse forced version string");
+    }
+
     var ast = Ast.parse(b.allocator, @embedFile("build.zig.zon"), .zon) catch @panic("OOM");
     defer ast.deinit(b.allocator);
 
@@ -139,7 +143,6 @@ pub fn build(b: *std.Build) !void {
     }
 
     const run_cmd = b.addRunArtifact(exe);
-
     run_cmd.step.dependOn(b.getInstallStep());
 
     if (b.args) |args| {
