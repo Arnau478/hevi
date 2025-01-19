@@ -107,9 +107,18 @@ It is written in [zig](https://github.com/ziglang/zig), in an attempt to simplif
 If your package manager is in the following list (and preferably in green), you can simply install it from there:
 [![Packaging status](https://repology.org/badge/vertical-allrepos/hevi.svg)](https://repology.org/project/hevi/versions)
 
+### Homebrew
+
+You can install [hevi](https://formulae.brew.sh/formula/hevi) with [brew](https://brew.sh/):
+
+```sh
+$ brew install hevi
+```
+
 ### Nix
 There is a nix flake you can use. You can also try hevi without installing it:
-```
+
+```sh
 $ nix shell github:Arnau478/hevi
 ```
 
