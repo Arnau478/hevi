@@ -105,6 +105,7 @@ It is written in [zig](https://github.com/ziglang/zig), in an attempt to simplif
 
 ### Some Linux package managers
 If your package manager is in the following list (and preferably in green), you can simply install it from there:
+
 [![Packaging status](https://repology.org/badge/vertical-allrepos/hevi.svg)](https://repology.org/project/hevi/versions)
 
 ### Homebrew
