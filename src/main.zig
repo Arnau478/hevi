@@ -1,6 +1,7 @@
 const std = @import("std");
 const hevi = @import("hevi");
-const argparse = @import("argparse.zig");
+const build_options = @import("build_options");
+const pennant = @import("pennant");
 const options = @import("options.zig");
 
 pub const std_options = std.Options{
@@ -63,78 +64,163 @@ fn printPalette(opts: hevi.DisplayOptions, writer: anytype) !void {
     }
 }
 
+fn printVersion() void {
+    const version = build_options.version;
+
+    if (version.build != null) {
+        // Development version
+        std.debug.print(
+            \\hevi {d}.{d}.{d}-{s}+{s}
+            \\
+        , .{
+            version.major,
+            version.minor,
+            version.patch,
+            version.pre.?,
+            version.build.?,
+        });
+    } else if (version.pre != null) {
+        // Development version because git information is not available
+        std.debug.print(
+            \\hevi {d}.{d}.{d}-{s}
+            \\
+        , .{
+            version.major,
+            version.minor,
+            version.patch,
+            version.pre.?,
+        });
+    } else {
+        // Tagged version
+        std.debug.print(
+            \\hevi {d}.{d}.{d}
+            \\
+        , .{ version.major, version.minor, version.patch });
+    }
+}
+
+pub const CliOptions = struct {
+    help: bool = false,
+    version: bool = false,
+    @"show-palette": bool = false,
+    color: ?bool = null,
+    uppercase: ?bool = null,
+    size: ?bool = null,
+    offset: ?bool = null,
+    ascii: ?bool = null,
+    @"skip-lines": ?bool = null,
+    raw: ?bool = null,
+    parser: ?hevi.Parser = null,
+
+    pub const shorthands = .{
+        .h = "help",
+        .v = "version",
+    };
+
+    pub const opposites = .{
+        .color = "no-color",
+        .uppercase = "lowercase",
+        .size = "no-size",
+        .offset = "no-offset",
+        .ascii = "no-ascii",
+        .@"skip-lines" = "no-skip-lines",
+    };
+
+    pub const descriptions = .{
+        .help = "Print this help message",
+        .version = "Print version information",
+        .@"show-palette" = "Print the color palette being used",
+        .color = "Colored output",
+        .uppercase = "Lowercase or uppercase hexadecimal",
+        .size = "Show the file size at the end",
+        .offset = "Show the offset into the file at each line",
+        .ascii = "Show the ASCII interpretation",
+        .@"skip-lines" = "Skip identical lines",
+        .raw = "Raw format (disables most features)",
+        .parser = "The parser to use",
+    };
+};
+
 pub fn main() void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer if (gpa.deinit() == .leak) fail("Memory leak detected", .{});
 
     const allocator = gpa.allocator();
 
-    const args = std.process.argsAlloc(allocator) catch fail("Out of memory", .{});
-    defer std.process.argsFree(allocator, args);
-
-    const parsed_args = argparse.parse(args[1..]);
-
-    const stdout = std.io.getStdOut();
-
-    const opts = options.getOptions(allocator, parsed_args, stdout) catch |err| switch (err) {
-        error.InvalidConfig => fail("Invalid config found", .{}),
-        else => fail("Error getting options and config file", .{}),
+    const args_res = pennant.parseForProcess(CliOptions, allocator) catch |err| switch (err) {
+        error.OutOfMemory => fail("Out of memory", .{}),
     };
+    defer args_res.deinit(allocator);
 
-    if (parsed_args.show_palette != null and parsed_args.show_palette.?) {
-        printPalette(opts, stdout.writer()) catch |err| switch (err) {
-            else => fail("{s}", .{@errorName(err)}),
-        };
-    } else {
-        if (parsed_args.filename) |true_filename| {
-            const is_stdin = std.mem.eql(u8, true_filename, "-");
-            const filename = if (is_stdin) "<stdin>" else true_filename;
+    switch (args_res) {
+        .valid => |args| {
+            const stdout = std.io.getStdOut();
 
-            const file = if (is_stdin)
-                std.io.getStdIn()
-            else
-                std.fs.cwd().openFile(filename, .{}) catch |err| switch (err) {
-                    error.FileNotFound => fail("{s} not found", .{filename}),
-                    error.IsDir => fail("{s} is a directory", .{filename}),
-                    else => fail("{s} could not be opened", .{filename}),
+            const opts = options.getOptions(allocator, args.options, stdout) catch |err| switch (err) {
+                error.InvalidConfig => fail("Invalid config found", .{}),
+                else => fail("Error getting options and config file", .{}),
+            };
+
+            if (args.options.help) {
+                pennant.printHelp(CliOptions, .{ .text = 
+                    \\hevi - hex viewer
+                    \\
+                    \\Usage:
+                    \\  hevi <file>
+                });
+            } else if (args.options.version) {
+                printVersion();
+            } else if (args.options.@"show-palette") {
+                printPalette(opts, stdout.writer()) catch |err| switch (err) {
+                    else => fail("{s}", .{@errorName(err)}),
                 };
-            defer if (!is_stdin) file.close();
+            } else {
+                if (args.positionals.len == 1) {
+                    const true_filename = args.positionals[0];
+                    const is_stdin = std.mem.eql(u8, true_filename, "-");
+                    const filename = if (is_stdin) "<stdin>" else true_filename;
 
-            const data = file.readToEndAlloc(allocator, std.math.maxInt(usize)) catch |err| switch (err) {
-                error.OutOfMemory => fail("Out of memory", .{}),
-                error.IsDir => fail("{s} is a directory", .{filename}),
-                else => fail("Cannot read {s}", .{filename}),
-            };
+                    const file = if (is_stdin)
+                        std.io.getStdIn()
+                    else
+                        std.fs.cwd().openFile(filename, .{}) catch |err| switch (err) {
+                            error.FileNotFound => fail("{s} not found", .{filename}),
+                            error.IsDir => fail("{s} is a directory", .{filename}),
+                            else => fail("{s} could not be opened", .{filename}),
+                        };
+                    defer if (!is_stdin) file.close();
 
-            defer allocator.free(data);
+                    const data = file.readToEndAlloc(allocator, std.math.maxInt(usize)) catch |err| switch (err) {
+                        error.OutOfMemory => fail("Out of memory", .{}),
+                        error.IsDir => fail("{s} is a directory", .{filename}),
+                        else => fail("Cannot read {s}", .{filename}),
+                    };
 
-            hevi.dump(allocator, data, stdout.writer(), opts) catch |err| switch (err) {
-                error.NonMatchingParser => fail("{s} does not match parser {s}", .{ filename, @tagName(opts.parser.?) }),
-                error.OutOfMemory => fail("Out of memory", .{}),
-                error.BrokenPipe => fail("Broken pipe", .{}),
-                else => fail("Error writing to stdout: {s}", .{@errorName(err)}),
-            };
-        } else {
-            var no_args = true;
-            inline for (std.meta.fields(argparse.ParseResult)) |field| {
-                if (@field(parsed_args, field.name) != null) {
-                    no_args = false;
-                    break;
+                    defer allocator.free(data);
+
+                    hevi.dump(allocator, data, stdout.writer(), opts) catch |err| switch (err) {
+                        error.NonMatchingParser => fail("{s} does not match parser {s}", .{ filename, @tagName(opts.parser.?) }),
+                        error.OutOfMemory => fail("Out of memory", .{}),
+                        error.BrokenPipe => fail("Broken pipe", .{}),
+                        else => fail("Error writing to stdout: {s}", .{@errorName(err)}),
+                    };
+                } else {
+                    if (args.positionals.len == 0) {
+                        std.log.err("No file specified", .{});
+                    } else {
+                        std.log.err("Invalid command usage", .{});
+                    }
+                    std.log.info("Use `--help` for help", .{});
+                    std.process.exit(1);
                 }
             }
-
-            if (no_args) {
-                std.log.err("no file specified", .{});
-                std.log.info("use `--help` for help", .{});
-                std.process.exit(1);
-            }
-
-            fail("no file specified", .{});
-        }
+        },
+        .err => |err| {
+            fail("{}", .{err});
+        },
     }
 }
 
 test {
-    _ = argparse;
     _ = options;
 }

@@ -1,8 +1,9 @@
 const builtin = @import("builtin");
 const std = @import("std");
+const root = @import("root");
 const hevi = @import("hevi");
 const ziggy = @import("ziggy");
-const argparse = @import("argparse.zig");
+const pennant = @import("pennant");
 
 fn openConfigFile(allocator: std.mem.Allocator, env_map: std.process.EnvMap) ?std.meta.Tuple(&.{ std.fs.File, []const u8 }) {
     const path: ?[]const u8 = switch (builtin.os.tag) {
@@ -181,7 +182,7 @@ const Config = struct {
     };
 };
 
-pub fn getOptions(allocator: std.mem.Allocator, args: argparse.ParseResult, stdout: std.fs.File) !hevi.DisplayOptions {
+pub fn getOptions(allocator: std.mem.Allocator, args: root.CliOptions, stdout: std.fs.File) !hevi.DisplayOptions {
     var envs = try std.process.getEnvMap(allocator);
     defer envs.deinit();
 
@@ -242,10 +243,10 @@ pub fn getOptions(allocator: std.mem.Allocator, args: argparse.ParseResult, stdo
     // Flags
     if (args.color) |color| options.color = color;
     if (args.uppercase) |uppercase| options.uppercase = uppercase;
-    if (args.show_size) |show_size| options.show_size = show_size;
-    if (args.show_offset) |show_offset| options.show_offset = show_offset;
-    if (args.show_ascii) |show_ascii| options.show_ascii = show_ascii;
-    if (args.skip_lines) |skip_lines| options.skip_lines = skip_lines;
+    if (args.size) |show_size| options.show_size = show_size;
+    if (args.offset) |show_offset| options.show_offset = show_offset;
+    if (args.ascii) |show_ascii| options.show_ascii = show_ascii;
+    if (args.@"skip-lines") |skip_lines| options.skip_lines = skip_lines;
     if (args.raw) |raw| options.raw = raw;
     if (args.parser) |parser| options.parser = parser;
 
