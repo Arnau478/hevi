@@ -1,12 +1,16 @@
 .{
     .name = .hevi,
     .version = "2.0.0",
-
     .fingerprint = 0xdcc10eb74ab2196e,
+    .minimum_zig_version = "0.14.0",
     .dependencies = .{
         .ziggy = .{
             .url = "git+https://github.com/kristoff-it/ziggy#af41bdb5b1d64404c2ec7eb1d9de01083c0d2596",
             .hash = "ziggy-0.1.0-kTg8v7rKBQCdELbScM186Uh4X3sxhBFgsdNpYcilLhDt",
+        },
+        .pennant = .{
+            .url = "git+https://github.com/Arnau478/pennant#67aee7c4761afe74d6ff9e2bc4a00131adcc582e",
+            .hash = "pennant-0.1.0-MwI8MANDAACAV-1TXYJwhyBCSg5EwnVD6fqsw1ma3VCn",
         },
     },
     .paths = .{
