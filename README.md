@@ -123,6 +123,14 @@ There is a nix flake you can use. You can also try hevi without installing it:
 $ nix shell github:Arnau478/hevi
 ```
 
+### X-CMD
+
+If you are a user of [x-cmd](https://x-cmd.com), you can run:
+
+```sh
+$ x install hevi
+```
+
 ### Other platforms
 You can download a binary from the [releases](https://github.com/Arnau478/hevi/releases/) page. You can also clone the repository and compile it with `zig build`.
 
