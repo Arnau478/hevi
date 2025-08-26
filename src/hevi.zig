@@ -40,7 +40,7 @@ pub const TextColor = struct {
         };
     };
 
-    pub fn ansiCode(self: TextColor, writer: anytype) !void {
+    pub fn ansiCode(self: TextColor, writer: *std.Io.Writer) !void {
         if (self.foreground) |foreground| {
             switch (foreground) {
                 .standard => |standard| _ = try writer.write(switch (standard) {
@@ -187,10 +187,7 @@ pub const Parser = enum {
     }
 };
 
-fn getColors(allocator: std.mem.Allocator, reader: anytype, options: DisplayOptions) ![]const PaletteColor {
-    const data = try reader.readAllAlloc(allocator, std.math.maxInt(usize));
-    defer allocator.free(data);
-
+fn getColors(allocator: std.mem.Allocator, data: []const u8, options: DisplayOptions) ![]const PaletteColor {
     const colors = try allocator.alloc(PaletteColor, data.len);
 
     inline for (comptime std.enums.values(Parser)) |parser| {
@@ -226,7 +223,7 @@ const DisplayLineOptions = struct {
     raw: bool,
 };
 
-fn displayLine(line: []const u8, colors: []const TextColor, writer: anytype, options: DisplayLineOptions) !void {
+fn displayLine(line: []const u8, colors: []const TextColor, writer: *std.Io.Writer, options: DisplayLineOptions) !void {
     if (!options.raw) {
         if (options.color) {
             try writer.print("\x1b[2m|\x1b[0m ", .{});
@@ -288,7 +285,7 @@ fn displayLine(line: []const u8, colors: []const TextColor, writer: anytype, opt
     try writer.print("\n", .{});
 }
 
-fn printBuffer(line: []const u8, colors: []const TextColor, count: usize, writer: anytype, options: DisplayOptions) !void {
+fn printBuffer(line: []const u8, colors: []const TextColor, count: usize, writer: *std.Io.Writer, options: DisplayOptions) !void {
     if (options.show_offset) {
         if (options.uppercase) {
             try writer.print("{X:0>8} ", .{count});
@@ -303,7 +300,7 @@ fn printBuffer(line: []const u8, colors: []const TextColor, count: usize, writer
     });
 }
 
-fn display(reader: anytype, colors: []const TextColor, raw_writer: anytype, options: DisplayOptions) !void {
+fn display(fixed_reader: *std.Io.Reader, colors: []const TextColor, writer: *std.Io.Writer, options: DisplayOptions) !void {
     var count: usize = 0;
 
     var buf: [16]u8 = undefined;
@@ -313,11 +310,8 @@ fn display(reader: anytype, colors: []const TextColor, raw_writer: anytype, opti
     var previous_line_len: ?usize = null;
     var lines_skipped: usize = 0;
 
-    var buf_writer = std.io.bufferedWriter(raw_writer);
-    const writer = buf_writer.writer();
-
     while (true) {
-        const line_len = try reader.readAll(&buf);
+        const line_len = try fixed_reader.readSliceShort(&buf);
 
         if (line_len == 0) {
             switch (lines_skipped) {
@@ -363,26 +357,22 @@ fn display(reader: anytype, colors: []const TextColor, raw_writer: anytype, opti
 
         count += line_len;
 
-        try buf_writer.flush();
+        try writer.flush();
     }
 
     if (options.show_size) {
         if (count < 1024) {
             try writer.print("File size: {} bytes\n", .{count});
-        } else try writer.print("File size: {} bytes ({})\n", .{ count, NormalizedSize.fromBytes(count) });
+        } else try writer.print("File size: {} bytes ({f})\n", .{ count, NormalizedSize.fromBytes(count) });
     }
 
-    try buf_writer.flush();
+    try writer.flush();
 }
 
 /// Dump `data` to `writer`
-pub fn dump(allocator: std.mem.Allocator, data: []const u8, writer: anytype, options: DisplayOptions) !void {
-    var fbs = std.io.fixedBufferStream(data);
-
-    const colors = try getColors(allocator, fbs.reader(), options);
+pub fn dump(allocator: std.mem.Allocator, data: []const u8, writer: *std.Io.Writer, options: DisplayOptions) !void {
+    const colors = try getColors(allocator, data, options);
     defer allocator.free(colors);
-
-    fbs.reset();
 
     const text_colors = try allocator.alloc(TextColor, colors.len);
     defer allocator.free(text_colors);
@@ -402,8 +392,9 @@ pub fn dump(allocator: std.mem.Allocator, data: []const u8, writer: anytype, opt
         new_options.skip_lines = false;
     }
 
+    var fixed_reader = std.Io.Reader.fixed(data);
     try display(
-        fbs.reader(),
+        &fixed_reader,
         text_colors,
         writer,
         new_options,
@@ -415,13 +406,12 @@ test {
 }
 
 fn testDump(expected: []const u8, input: []const u8, options: DisplayOptions) !void {
-    var out = std.ArrayList(u8).init(std.testing.allocator);
+    var out: std.Io.Writer.Allocating = try .initCapacity(std.testing.allocator, expected.len);
     defer out.deinit();
-    try out.ensureTotalCapacity(expected.len);
 
-    try dump(std.testing.allocator, input, out.writer(), options);
+    try dump(std.testing.allocator, input, &out.writer, options);
 
-    try std.testing.expectEqualSlices(u8, expected, out.items);
+    try std.testing.expectEqualSlices(u8, expected, out.written());
 }
 
 test "basic dump" {

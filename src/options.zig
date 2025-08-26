@@ -204,7 +204,7 @@ pub fn getOptions(allocator: std.mem.Allocator, args: root.CliOptions, stdout: s
             allocator.free(tuple[1]);
         }
 
-        const source = try tuple[0].readToEndAllocOptions(allocator, std.math.maxInt(usize), null, 1, 0);
+        const source = try tuple[0].readToEndAllocOptions(allocator, std.math.maxInt(usize), null, .of(u8), 0);
         defer allocator.free(source);
 
         if (source.len != 0) {
@@ -218,7 +218,7 @@ pub fn getOptions(allocator: std.mem.Allocator, args: root.CliOptions, stdout: s
                 .diagnostic = &diag,
             }) catch |err| switch (err) {
                 error.OutOfMemory, error.Overflow => return error.OutOfMemory,
-                error.Syntax => {
+                error.Syntax, error.MissingFrontmatter, error.OpenFrontmatter => {
                     std.log.err("{}", .{diag});
                     return error.InvalidConfig;
                 },

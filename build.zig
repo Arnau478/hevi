@@ -1,7 +1,7 @@
 const std = @import("std");
-const Ast = std.zig.Ast;
-
 const SemanticVersion = std.SemanticVersion;
+
+const build_zon = @import("build.zig.zon");
 
 const release_targets: []const std.Target.Query = &.{
     .{ .os_tag = .linux, .cpu_arch = .x86 },
@@ -19,23 +19,7 @@ fn getVersion(b: *std.Build) SemanticVersion {
         return SemanticVersion.parse(forced_ver) catch @panic("Unable to parse forced version string");
     }
 
-    var ast = Ast.parse(b.allocator, @embedFile("build.zig.zon"), .zon) catch @panic("OOM");
-    defer ast.deinit(b.allocator);
-
-    var buf: [2]Ast.Node.Index = undefined;
-    const build_zon = ast.fullStructInit(&buf, ast.nodes.items(.data)[0].lhs) orelse @panic("Cannot parse build.zig.zon");
-
-    var version: SemanticVersion = r: {
-        for (build_zon.ast.fields) |field| {
-            const field_name = ast.tokenSlice(ast.firstToken(field) - 2);
-
-            if (std.mem.eql(u8, field_name, "version")) {
-                const version_string = std.mem.trim(u8, ast.tokenSlice(ast.firstToken(field)), "\"");
-                break :r SemanticVersion.parse(version_string) catch @panic("Version parsing failed");
-            }
-        }
-        @panic("Unable to find 'version' in build.zig.zon");
-    };
+    var version = SemanticVersion.parse(build_zon.version) catch @panic("Version parsing failed");
 
     var code: u8 = undefined;
     const git_version_cmd = std.mem.trim(u8, b.runAllowFail(&[_][]const u8{
@@ -78,9 +62,11 @@ fn getVersion(b: *std.Build) SemanticVersion {
 fn addExe(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode, pie: ?bool, release: bool, build_options: *std.Build.Step.Options, hevi_mod: *std.Build.Module) *std.Build.Step.Compile {
     const exe = b.addExecutable(.{
         .name = if (release) b.fmt("hevi-{s}-{s}", .{ @tagName(target.result.cpu.arch), @tagName(target.result.os.tag) }) else "hevi",
-        .root_source_file = b.path("src/main.zig"),
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/main.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
 
     exe.pie = pie;
@@ -113,9 +99,11 @@ pub fn build(b: *std.Build) !void {
 
     const docs_obj = b.addObject(.{
         .name = "hevi",
-        .target = target,
-        .optimize = .Debug,
-        .root_source_file = b.path("src/hevi.zig"),
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/hevi.zig"),
+            .target = target,
+            .optimize = .Debug,
+        }),
     });
     docs_obj.root_module.addOptions("build_options", build_options);
 
@@ -154,9 +142,11 @@ pub fn build(b: *std.Build) !void {
     run_step.dependOn(&run_cmd.step);
 
     const exe_unit_tests = b.addTest(.{
-        .root_source_file = b.path("src/main.zig"),
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/main.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
     exe_unit_tests.root_module.addImport("hevi", mod);
     exe_unit_tests.root_module.addOptions("build_options", build_options);
@@ -164,9 +154,11 @@ pub fn build(b: *std.Build) !void {
     const run_exe_unit_tests = b.addRunArtifact(exe_unit_tests);
 
     const mod_unit_tests = b.addTest(.{
-        .root_source_file = b.path("src/hevi.zig"),
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/hevi.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
 
     const run_mod_unit_tests = b.addRunArtifact(mod_unit_tests);

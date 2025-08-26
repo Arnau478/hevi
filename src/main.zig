@@ -11,14 +11,16 @@ pub const std_options = std.Options{
 fn logFn(comptime message_level: std.log.Level, comptime scope: @Type(.enum_literal), comptime format: []const u8, args: anytype) void {
     const level_txt = comptime message_level.asText();
     const prefix2 = if (scope == .default) ": " else "(" ++ @tagName(scope) ++ "): ";
-    const stderr = std.io.getStdErr();
-    var bw = std.io.bufferedWriter(stderr.writer());
-    const writer = bw.writer();
+
+    var stderr_buffer: [4096]u8 = undefined;
+    var stderr_file = std.fs.File.stderr();
+    var stderr_writer = stderr_file.writer(&stderr_buffer);
+    const stderr = &stderr_writer.interface;
 
     std.debug.lockStdErr();
     defer std.debug.unlockStdErr();
 
-    const log_color = stderr.supportsAnsiEscapeCodes();
+    const log_color = stderr_file.supportsAnsiEscapeCodes();
 
     const col = switch (message_level) {
         .err => "31",
@@ -28,12 +30,12 @@ fn logFn(comptime message_level: std.log.Level, comptime scope: @Type(.enum_lite
     };
 
     nosuspend {
-        writer.print(
+        stderr.print(
             "{s}{s}{s}" ++ level_txt ++ "{s}",
             if (log_color) .{ "\x1b[", col, "m\x1b[1m", "\x1b[0m" } else .{ "", "", "", "" },
         ) catch return;
-        writer.print(prefix2 ++ format ++ "\n", args) catch return;
-        bw.flush() catch return;
+        stderr.print(prefix2 ++ format ++ "\n", args) catch return;
+        stderr.flush() catch return;
     }
 }
 
@@ -42,7 +44,7 @@ pub fn fail(comptime fmt: []const u8, args: anytype) noreturn {
     std.process.exit(1);
 }
 
-fn printPalette(opts: hevi.DisplayOptions, writer: anytype) !void {
+fn printPalette(opts: hevi.DisplayOptions, writer: *std.Io.Writer) std.Io.Writer.Error!void {
     try writer.print("                  (alt)    (accent)\n", .{});
     try writer.print("(main)   ", .{});
     try opts.palette.normal.ansiCode(writer);
@@ -154,9 +156,12 @@ pub fn main() void {
 
     switch (args_res) {
         .valid => |args| {
-            const stdout = std.io.getStdOut();
+            var stdout_buffer: [4096]u8 = undefined;
+            var stdout_file = std.fs.File.stdout();
+            var stdout_writer = stdout_file.writer(&stdout_buffer);
+            const stdout = &stdout_writer.interface;
 
-            const opts = options.getOptions(allocator, args.options, stdout) catch |err| switch (err) {
+            const opts = options.getOptions(allocator, args.options, stdout_file) catch |err| switch (err) {
                 error.InvalidConfig => fail("Invalid config found", .{}),
                 else => fail("Error getting options and config file", .{}),
             };
@@ -171,7 +176,7 @@ pub fn main() void {
             } else if (args.options.version) {
                 printVersion();
             } else if (args.options.@"show-palette") {
-                printPalette(opts, stdout.writer()) catch |err| switch (err) {
+                printPalette(opts, stdout) catch |err| switch (err) {
                     else => fail("{s}", .{@errorName(err)}),
                 };
             } else {
@@ -181,7 +186,7 @@ pub fn main() void {
                     const filename = if (is_stdin) "<stdin>" else true_filename;
 
                     const file = if (is_stdin)
-                        std.io.getStdIn()
+                        std.fs.File.stdin()
                     else
                         std.fs.cwd().openFile(filename, .{}) catch |err| switch (err) {
                             error.FileNotFound => fail("{s} not found", .{filename}),
@@ -198,10 +203,9 @@ pub fn main() void {
 
                     defer allocator.free(data);
 
-                    hevi.dump(allocator, data, stdout.writer(), opts) catch |err| switch (err) {
+                    hevi.dump(allocator, data, stdout, opts) catch |err| switch (err) {
                         error.NonMatchingParser => fail("{s} does not match parser {s}", .{ filename, @tagName(opts.parser.?) }),
                         error.OutOfMemory => fail("Out of memory", .{}),
-                        error.BrokenPipe => fail("Broken pipe", .{}),
                         else => fail("Error writing to stdout: {s}", .{@errorName(err)}),
                     };
                 } else {
@@ -214,9 +218,11 @@ pub fn main() void {
                     std.process.exit(1);
                 }
             }
+
+            stdout.flush() catch fail("Cannot flush", .{});
         },
         .err => |err| {
-            fail("{}", .{err});
+            fail("{f}", .{err});
         },
     }
 }

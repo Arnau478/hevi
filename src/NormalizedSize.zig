@@ -39,6 +39,6 @@ pub fn fromBytes(bytes: usize) NormalizedSize {
     return size;
 }
 
-pub fn format(self: NormalizedSize, comptime _: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
+pub fn format(self: NormalizedSize, writer: *std.Io.Writer) !void {
     try writer.print("{d:.2} {s}", .{ self.magnitude, self.unit.getName() });
 }
