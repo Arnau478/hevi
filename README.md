@@ -1,3 +1,9 @@
+> [!WARNING]  
+> This repo was **migrated** to [codeberg](https://codeberg.org/arnauc/hevi).
+> The github repo is **not a mirror**. It won't receive any new commits. Please use the new repo.
+
+---
+
 <div align="center">
     <h1 align="center">hevi</h1>
     <h3>a hex viewer</h3>
